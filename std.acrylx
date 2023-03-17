@@ -1,0 +1,6 @@
+document(author: str, content: {})
+
+title(content: {}) in document {
+  \style(align: Alignment.center, size: 12mm) { \(content) }
+  \style(align: Alignment.center, size: 5mm) { \(document.author) }
+}
