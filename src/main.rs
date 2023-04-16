@@ -1,40 +1,24 @@
-use std::{fs::File, io::Read};
-
-use parser::lexer::Token;
-
-use crate::parser::lexer::Lexer;
-
 mod parser;
-mod pdf;
+
+use std::fs::read_to_string;
+
+use chumsky::Parser;
+
 
 fn main() {
   let file_path = "hello_world.acryl";
 
-  println!("{}", "-".repeat(10));
+  // println!("{}", "-".repeat(10));
   println!("reading file {}:", file_path);
   println!();
 
-  let mut file = File::open(file_path).expect("Can't open file");
-  let mut file_content = String::new();
+  let file_content = read_to_string(file_path).expect("Can't read file");
 
-  file
-    .read_to_string(&mut file_content)
-    .expect("Can't read file");
+  let test_content = "187 + 187 * (1 + -1000)";
 
-  let mut lexer = Lexer::new(file_content.as_str());
-
-  loop {
-    match lexer.next_token() {
-      Ok(Token::EOF) => {
-        println!("<EOF>");
-        break;
-      }
-      Ok(token) => {
-        println!("{:?}", token);
-      }
-      Err(error) => {
-        println!("{:?}", error);
-      }
-    };
+  match parser::parser().parse(test_content) {
+    Ok(expr) => println!("'{:?}' = '{}'", expr, expr.eval()),
+    Err(errors) => errors.into_iter().for_each(|e| println!("parse error: {}", e)),
   }
+
 }
