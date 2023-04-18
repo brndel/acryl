@@ -1,21 +1,12 @@
-\import[std]
+let author = "Armin Brändle";
+let version = "1.0";
 
-\{
-  author = "Armin Brändle";
-  version = "1.0";
+fn title(content: {_}) -> {_} in document {
+  \(content)
+  \(document.author)
 }
 
-\document(author: "Armin Brändle") {...}
-
-\title {Hello world}
-
-\newpage
-
-\section {Section 1}
-
-Lorem ipsum \color["#ff00aa"] {dolor} \bold {sit} \italic {amet}.
-
-\color["#aaffaa"] {hello}
-\color(r: 150, g: 100, b: 80) {hello} 
-
-\style(color: "#aa00aa", weight: 500) {hello fancy}
+\document(author: author) {
+  \title {Hello world}
+  Hello content world
+}
