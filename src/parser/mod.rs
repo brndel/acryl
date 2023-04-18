@@ -1,9 +1,11 @@
-use chumsky::{prelude::Simple, primitive::end, Parser};
+use chumsky::prelude::*;
 
 use self::math::Expr;
 
 mod math;
 
-pub fn parser() -> impl Parser<char, Expr, Error = Simple<char>> {
-  math::parser().then_ignore(end())
+type AcrylError<'src> = extra::Err<Rich<'src, char, SimpleSpan<usize>>>;
+
+pub fn parser<'src>() -> impl Parser<'src, &'src str, Expr, AcrylError<'src>> {
+    math::parser().then_ignore(end())
 }
