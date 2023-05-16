@@ -1,0 +1,12 @@
+let number: int = 1
+let text: str = "Hello"
+let user: (name: str, age: int) = ("Armin", 19)
+
+type User = (
+    name: str,
+    age: int,
+)
+
+let user: User = ("Other", 20)
+
+let content: {} = \{ Hey }

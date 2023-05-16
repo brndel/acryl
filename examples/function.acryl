@@ -1,0 +1,44 @@
+fn hey() -> {} {
+    return \{
+        Hey
+    }
+}
+
+fn hey_you(name: str) -> {} {
+    return \{
+        Hey \(name)
+    }
+}
+
+fn hey_math(a: int, b: int) -> {} {
+    return \{
+        \(a) + \(b) = \(a + b)
+    }
+}
+
+fn hey_content(content: {}) -> {} {
+    return \{
+        Hello \(content)
+    }
+}
+
+fn hey_advanced_content(content1: {}, content2: {}) -> {} {
+    return \{
+        \(content2) \(content1)
+    }
+}
+
+\document() {
+    \hey()
+    \hey // You don't need empty braces 
+    \hey_you("Armin")
+    \hey_math(4, 5)
+
+    \hey_content({ Foo bar })
+    \hey_content(content: { Foo bar })
+    \hey_content { Foo bar } // Arguments of type {}, can be written outside of the braces
+    \hey_content Foo // If you only want to pass 1 tag to the function you don't even need the braces
+
+    \hey_advanced_content { Hello } { World } // This will assign { Hello } to content1 and { World } to content2
+    \hey_acvaned_content Hello World // This will do the same as the line above
+}
