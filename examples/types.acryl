@@ -1,4 +1,6 @@
-let number: int = 1
+let number: int = 1 // equivalent to isize in rust
+let unsigned: uint = 1 // equivalent to usize in rust
+let floating: float = 80 // equivalent to f64 (double) in rust
 let text: str = "Hello"
 let user: (name: str, age: int) = ("Armin", 19)
 

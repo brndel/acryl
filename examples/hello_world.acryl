@@ -1,3 +1,30 @@
-\document(author: "Armin Brändle", title: "Hello world") {
-  Hello world
+let x = (10 + 7) * 2 - 4.7;
+let y = x + 2 * 2;
+
+let msg = "Hello";
+
+x = 5;
+
+if x == 5 + y {
+    x = 10;
+    return x;
+} else {
+    return y;
 }
+
+hey();
+
+hello(1, 5+4, thing(), a: "hey");
+
+fn hey(a: int) -> int {
+  return a + 1;
+}
+
+return \{
+  Hello
+  \hey() {Thing^\(5)}
+};
+
+//  \foo(a: 1) Hey
+//
+//}

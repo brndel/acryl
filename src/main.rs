@@ -2,29 +2,33 @@ mod parser;
 
 use std::fs::read_to_string;
 
-use chumsky::Parser;
+use chumsky::{span::SimpleSpan};
 
+use crate::parser::{parse};
 
 fn main() {
-  let file_path = "hello_world.acryl";
+    let file_path = "examples/hello_world.acryl";
 
-  // println!("{}", "-".repeat(10));
-  println!("reading file {}:", file_path);
-  println!();
+    let file_content = read_to_string(file_path).expect("Can't read file");
 
-  let file_content = read_to_string(file_path).expect("Can't read file");
+    println!("reading file {}:", file_path);
+    println!("---\n{}\n--- length: {}\n", file_content, file_content.len());
 
-  let test_content = "187 + 187 * (1 a+ -1000)";
+    let result = parse(&file_content);
 
-  let result = parser::parser().parse(test_content);
+    // println!("{:?}", result);
 
-  println!("{:?}", result);
+    for (expr, _) in result {
+        println!("{:?}\n{}\n", expr, expr)
+    }
 
-  if let Some(expr) = result.output() {
-    println!("= {}", expr.eval());
-  }
 
-  for err in result.errors() {
-    println!("{}", err);
-  }
+    // for err in result.errors() {
+    //     let span = err.span();
+
+    //     let (lines, position) = get_line_position(&file_content, &span);
+
+    //     println!("Error at col {}: {}\n{}\n{}↑ Here", position, err.reason(), lines, " ".repeat(position));
+    // }
 }
+
