@@ -1,10 +1,10 @@
 mod parser;
+mod evaluate;
+mod ast;
 
 use std::fs::read_to_string;
 
-use chumsky::{span::SimpleSpan};
-
-use crate::parser::{parse};
+use crate::{parser::{parse}, evaluate::stack::StackStorage};
 
 fn main() {
     let file_path = "examples/hello_world.acryl";
@@ -17,6 +17,8 @@ fn main() {
     let result = parse(&file_content);
 
     // println!("{:?}", result);
+
+    let storage = StackStorage::new();
 
     for (expr, _) in result {
         println!("{:?}\n{}\n", expr, expr)

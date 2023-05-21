@@ -1,138 +1,17 @@
+mod keyword;
+mod token;
+
 use chumsky::{
     primitive::{any, end, just, none_of, one_of},
     text, IterParser, Parser,
 };
 
+use crate::ast::Op;
+
+pub use self::keyword::Keyword;
+pub use self::token::Token;
+
 use super::{AcrylError, Spanned};
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Token<'src> {
-    Num(&'src str),
-    NumHex(&'src str),
-    Str(&'src str),
-    Op(Op<'src>),
-    Ctrl(char),
-    Escape,
-    Word(&'src str),
-    Keyword(Keyword),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Op<'src> {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Set,
-    Equals,
-    NotEquals,
-    Greater,
-    GreaterEquals,
-    Less,
-    LessEquals,
-    Not,
-    Arrow,
-    Custom(&'src str),
-}
-
-impl<'src> Op<'src> {
-    pub const fn high_priority() -> &'static [Op<'static>] {
-        return &[Op::Multiply, Op::Divide];
-    }
-
-    pub const fn mid_priority() -> &'static [Op<'static>] {
-        return &[Op::Add, Op::Subtract];
-    }
-
-    pub const fn low_priority() -> &'static [Op<'static>] {
-        return &[
-            Op::Equals,
-            Op::NotEquals,
-            Op::Greater,
-            Op::GreaterEquals,
-            Op::Less,
-            Op::LessEquals,
-        ];
-    }
-}
-
-impl<'src> std::fmt::Display for Op<'src> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let v = match self {
-            Op::Add => "+",
-            Op::Subtract => "-",
-            Op::Multiply => "*",
-            Op::Divide => "/",
-            Op::Set => "=",
-            Op::Equals => "==",
-            Op::NotEquals => "!=",
-            Op::Greater => ">",
-            Op::GreaterEquals => ">=",
-            Op::Less => "<",
-            Op::LessEquals => "<=",
-            Op::Not => "!",
-            Op::Arrow => "->",
-            Op::Custom(v) => v,
-        };
-
-        write!(f, "{}", v)
-    }
-}
-
-impl<'src> From<&'src str> for Op<'src> {
-    fn from(value: &'src str) -> Self {
-        use Op::*;
-        match value {
-            "+" => Add,
-            "-" => Subtract,
-            "*" => Multiply,
-            "/" => Divide,
-            "=" => Set,
-            "==" => Equals,
-            "!=" => NotEquals,
-            ">" => Greater,
-            ">=" => GreaterEquals,
-            "<" => Less,
-            "<=" => LessEquals,
-            "!" => Not,
-            "->" => Arrow,
-            _ => Custom(value),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Keyword {
-    True,
-    False,
-    If,
-    Else,
-    Fn,
-    Let,
-    In,
-    After,
-    Return,
-}
-
-impl TryFrom<&str> for Keyword {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        use Keyword::*;
-        match value {
-            "true" => Ok(True),
-            "false" => Ok(False),
-            "if" => Ok(If),
-            "else" => Ok(Else),
-            "fn" => Ok(Fn),
-            "let" => Ok(Let),
-            "in" => Ok(In),
-            "after" => Ok(After),
-            "return" => Ok(Return),
-            _ => Err(()),
-        }
-    }
-}
 
 fn num<'src>() -> impl Parser<'src, &'src str, Token<'src>, AcrylError<'src, char>> + Clone {
     text::int(10)
@@ -154,10 +33,10 @@ fn string<'src>() -> impl Parser<'src, &'src str, Token<'src>, AcrylError<'src, 
 }
 
 fn op<'src>() -> impl Parser<'src, &'src str, Token<'src>, AcrylError<'src, char>> + Clone {
-    one_of("+-*/!=~^_<>?")
+    one_of(Op::ALLOWED)
         .repeated()
         .at_least(1)
-        .map_slice(|s| Token::Op(Op::from(s)))
+        .map_slice(|s| Token::Op(Op(s)))
 }
 
 fn word<'src>(
@@ -169,8 +48,8 @@ fn word<'src>(
         .repeated()
         .at_least(1)
         .map_slice(|word| {
-            if let Ok(kwd) = Keyword::try_from(word) {
-                Token::Keyword(kwd)
+            if let Some(keyword) = Keyword::parse(word) {
+                Token::Keyword(keyword)
             } else {
                 Token::Word(word)
             }

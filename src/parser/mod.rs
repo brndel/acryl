@@ -14,7 +14,7 @@ macro_rules! parser {
             crate::parser::ParserInput<$tokens, $src>,
             $output,
             crate::parser::AcrylError<$tokens, crate::parser::lexer::Token<$src>>
-        > + Clone
+        > + Clone + $tokens
     };
 }
 
@@ -23,10 +23,9 @@ mod content;
 pub mod lexer;
 mod shared;
 
-use self::{
-    code::Expr,
-    lexer::{lexer, Token},
-};
+use crate::ast::Instr;
+
+use self::lexer::{lexer, Token};
 
 pub type Span = SimpleSpan<usize>;
 pub type AcrylError<'a, T> = extra::Err<Rich<'a, T, Span>>;
@@ -36,7 +35,7 @@ pub type ParserInput<'tokens, 'src> =
 
 pub type Spanned<T> = (T, Span);
 
-pub fn parse<'src>(source: &'src str) -> Vec<Spanned<Expr<'src>>> {
+pub fn parse<'src>(source: &'src str) -> Vec<Spanned<Instr<'src>>> {
     let (tokens, errs) = lexer().parse(source).into_output_errors();
 
     for err in errs {
@@ -54,7 +53,8 @@ pub fn parse<'src>(source: &'src str) -> Vec<Spanned<Expr<'src>>> {
 
         for err in errs {
             let (slice, (line, col)) = get_line_slice(source, err.span());
-            println!("ERROR at line {}:{} {:?}", line, col, err.reason());
+            println!("ERROR at line {}:{} ( {:?} )", line, col, err.span());
+            println!("{:?}", err.reason());
             println!("{}", slice);
             println!("{}↑ Here", " ".repeat(col));
         }
@@ -74,7 +74,7 @@ fn get_line_slice<'src>(source: &'src str, span: &SimpleSpan) -> (&'src str, (us
         let mut position = start;
 
         loop {
-            if position == 0 || position == (chars.len() - 1) as usize {
+            if position == 0 || position == (chars.len()) as usize {
                 return position;
             }
 

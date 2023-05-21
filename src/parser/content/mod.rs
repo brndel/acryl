@@ -1,57 +1,50 @@
 use chumsky::{primitive::just, recursive::recursive, select, IterParser, Parser};
 
-use crate::parser::lexer::Token;
-
-use super::{
-    code::InlineExpr,
-    lexer::Op,
-    shared::fn_call::{fn_call_parser, FnCall},
-    Spanned,
+use crate::{
+    ast::{ContentToken, Expr},
+    parser::lexer::Token,
 };
 
-#[derive(Debug)]
-pub enum ContentToken<'src> {
-    Word(&'src str),
-    Op(Op<'src>),
-    Block(Vec<Spanned<Self>>),
-    Expr(InlineExpr<'src>),
-}
+use super::{shared::fn_call::fn_call_parser, Spanned};
 
 pub fn content_parser<'tokens, 'src: 'tokens>(
-    expr: impl chumsky::Parser<'tokens,crate::parser::ParserInput<'tokens,'src>,Spanned<InlineExpr<'src>> ,crate::parser::AcrylError<'tokens,crate::parser::lexer::Token<'src>> > +Clone + 'tokens,
+    expr: parser!('tokens, 'src, Spanned<Expr<'src>>),
 ) -> parser!('tokens, 'src, Vec<Spanned<ContentToken<'src>>>) {
-    
-    
     recursive(|token| {
         let word = select! {
-            Token::Word(word) => ContentToken::Word(word)
-        };
+            Token::Word(word) => word,
+        }
+        .map_with_span(|word, span| ContentToken::Word((word, span)));
 
-        let fn_call = just(Token::Escape).ignore_then(
-            fn_call_parser(expr.clone()).map(|fn_call| ContentToken::Expr(InlineExpr::FnCall(fn_call)))
-        );
+        let fn_call = just(Token::Escape).ignore_then(fn_call_parser(expr.clone()).map_with_span(
+            |fn_call, span| ContentToken::Expr((Expr::FnCall((fn_call, span)), span)),
+        ));
 
-        let inline_expr = expr.clone()
+        let expr = expr
+            .clone()
             .delimited_by(
                 just(Token::Escape).then(just(Token::Ctrl('('))),
                 just(Token::Ctrl(')')),
             )
-            .map(|(expr, _)| ContentToken::Expr(expr));
+            .map_with_span(|(expr, _), span| ContentToken::Expr((expr, span)));
 
         let block = token
             .delimited_by(just(Token::Ctrl('{')), just(Token::Ctrl('}')))
-            .map(|block| ContentToken::Block(block));
+            .map_with_span(|block, span| ContentToken::Block((block, span)));
 
         let op = select! {
-            Token::Op(op) => ContentToken::Op(op)
-        };
-        let literal = select! {
-            Token::Num(slice) => ContentToken::Word(slice),
-            Token::NumHex(slice) => ContentToken::Word(slice),
-            Token::Str(slice) => ContentToken::Word(slice),
-        };
+            Token::Op(op) => op,
+        }
+        .map_with_span(|op, span| ContentToken::Op((op, span)));
 
-        let token = fn_call.or(word).or(literal).or(op).or(inline_expr).or(block);
+        let literal = select! {
+            Token::Num(slice) => slice,
+            Token::NumHex(slice) => slice,
+            Token::Str(slice) => slice,
+        }
+        .map_with_span(|slice, span| ContentToken::Word((slice, span)));
+
+        let token = fn_call.or(expr).or(word).or(literal).or(op).or(block);
 
         let token = token.map_with_span(|token, span| (token, span));
 
