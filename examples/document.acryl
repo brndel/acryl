@@ -1,0 +1,21 @@
+document {
+    file: "document.pdf",
+    name: "Test Acryl File",
+    author: "Armin Brändle",
+
+    import: std,
+}
+
+\page {
+    \Title { Hello World }
+
+    \TOC   
+}
+
+\Section { First Section }
+
+This is the first section of the first acryl example
+
+\SubSection { Sub }
+
+This is a subsection
