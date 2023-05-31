@@ -1,8 +1,8 @@
-use std::{fs::{File, self}, io::Write};
+use std::fs;
 
 use acryl_pdf::{Document, Vector2};
 
-const file_path: &'static str = "out_test.pdf";
+const FILE_PATH: &'static str = "out/test.pdf";
 
 fn main() {
 
@@ -12,7 +12,5 @@ fn main() {
 
     let result = doc.render().unwrap();
 
-
-    fs::write(file_path, &result).unwrap();
-
+    fs::write(FILE_PATH, &result).unwrap();
 }
