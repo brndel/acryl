@@ -4,12 +4,17 @@ use crate::{
     util::{Area, Vector2},
 };
 
+#[derive(Default)]
 pub struct Document {
     info: DocumentInfo,
     catalog: DocumentCatalog,
 }
 
 impl Document {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn render(&self) -> String {
         let mut context = Context::new();
 
@@ -27,6 +32,7 @@ impl Document {
     }
 }
 
+#[derive(Default)]
 struct DocumentInfo {
     title: String,
     author: String,
@@ -46,6 +52,7 @@ impl DocumentInfo {
     }
 }
 
+#[derive(Default)]
 struct DocumentCatalog {
     pages: DocumentPages,
 }
@@ -62,6 +69,7 @@ impl DocumentCatalog {
     }
 }
 
+#[derive(Default)]
 struct DocumentPages {
     pages: Vec<Page>,
 }

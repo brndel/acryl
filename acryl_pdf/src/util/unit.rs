@@ -38,3 +38,9 @@ impl SubAssign for Pt {
         self.0 -= rhs.0
     }
 }
+
+impl Into<Pt> for i64 {
+    fn into(self) -> Pt {
+        Pt(self)
+    }
+}

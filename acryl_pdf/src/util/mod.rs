@@ -1,6 +1,6 @@
-mod area;
-mod unit;
-mod vec;
+pub mod area;
+pub mod unit;
+pub mod vec;
 
 pub use area::Area;
 pub use unit::Pt;
