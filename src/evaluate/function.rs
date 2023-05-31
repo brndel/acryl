@@ -1,34 +1,6 @@
-use super::value::{Type, Value};
+use super::{ty::Type};
 
-pub struct FunctionInput<'src> {
-    args: Vec<Value<'src>>,
-}
-
-impl<'src> FunctionInput<'src> {
-    pub fn matches_signature(&self, signature: &FunctionSignature<'src>) -> bool {
-        if self.args.len() != signature.args.len() {
-            return false;
-        }
-
-        let i = 0;
-
-        while i < self.args.len() {
-            let ty = self.args[i].get_type();
-            let expected = &signature.args[i];
-
-            if ty != *expected {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    pub fn get_arg(&self, index: usize) -> Option<&Value<'src>> {
-        self.args.get(index)
-    }
-}
-
+#[derive(Debug, Clone)]
 pub struct FunctionSignature<'src> {
     name: &'src str,
     args: Vec<Type<'src>>,

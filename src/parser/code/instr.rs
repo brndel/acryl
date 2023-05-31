@@ -5,7 +5,7 @@ use crate::{parser::{
     Spanned,
 }, ast::{Expr, Instr, Op}};
 
-use super::expr::{expr_parser};
+use super::expr::expr_parser;
 
 
 fn let_parser<'tokens, 'src: 'tokens>(
@@ -13,10 +13,11 @@ fn let_parser<'tokens, 'src: 'tokens>(
     expr: parser!('tokens, 'src, Spanned<Expr<'src>>),
 ) -> parser!('tokens, 'src, Instr<'src>) {
     just(Token::Keyword(Keyword::Let))
-        .ignore_then(ident_raw)
+        .ignore_then(ident_raw.clone())
+        .then(just(Token::Ctrl(':')).ignore_then(ident_raw).or_not())
         .then_ignore(just(Token::Op(Op::SET)))
         .then(expr)
-        .map(|(name, value)| Instr::Let { name, value })
+        .map(|((name, ty), value)| Instr::Let { name, ty, value })
 }
 
 fn return_parser<'tokens, 'src: 'tokens>(

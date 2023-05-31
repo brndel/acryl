@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use super::ty::Type;
+
+#[derive(Debug, Clone)]
 pub enum Value<'src> {
     Null,
     Bool(bool),
@@ -16,7 +18,7 @@ pub enum Value<'src> {
 }
 
 impl<'src> Value<'src> {
-    pub fn get_type(&self) -> Type {
+    pub fn get_type(&self) -> Type<'src> {
         match self {
             Value::Null => Type::Null,
             Value::Bool(_) => Type::Bool,
@@ -31,25 +33,9 @@ impl<'src> Value<'src> {
                 fields: fields
                     .clone()
                     .into_iter()
-                    .map(|(name, value)| (*name, value.get_type()))
+                    .map(|(name, value)| (name, value.get_type()))
                     .collect(),
             },
         }
     }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Type<'src> {
-    Null,
-    Bool,
-    Int,
-    Float,
-    String,
-    Array {
-        ty: Box<Self>,
-    },
-    Struct {
-        name: &'src str,
-        fields: Vec<(&'src str, Self)>,
-    },
 }

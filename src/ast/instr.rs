@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::parser::Spanned;
+use crate::{
+    evaluate::{stack::StackStorage, value::Value, Eval, EvalResult},
+    parser::Spanned,
+};
 
 use super::Expr;
 
@@ -12,6 +15,7 @@ pub enum Instr<'src> {
     Expr(Spanned<Expr<'src>>),
     Let {
         name: Spanned<&'src str>,
+        ty: Option<Spanned<&'src str>>,
         value: Spanned<Expr<'src>>,
     },
     Set {
@@ -29,7 +33,10 @@ pub enum Instr<'src> {
         return_type: Option<Spanned<&'src str>>,
         body: Box<Spanned<Self>>,
     },
-
+    Struct {
+        name: Spanned<&'src str>,
+        fields: Vec<(&'src str, &'src str)>,
+    },
     Return(Spanned<Expr<'src>>),
 
     Block(Vec<Spanned<Self>>),
@@ -41,9 +48,23 @@ impl Display for Instr<'_> {
             Instr::Expr((expr, _)) => write!(f, "{}", expr),
             Instr::Let {
                 name: (name, _),
+                ty,
                 value: (value, _),
-            } => write!(f, "let {} = {}", name, value),
-            Instr::Set { name: (name, _), value: (value, _) } => write!(f, "{} = {}", name, value),
+            } => write!(
+                f,
+                "let {} {}= {}",
+                name,
+                if let Some((ty, _)) = ty {
+                    format!(": {} ", ty)
+                } else {
+                    String::new()
+                },
+                value
+            ),
+            Instr::Set {
+                name: (name, _),
+                value: (value, _),
+            } => write!(f, "{} = {}", name, value),
             Instr::If {
                 condition: (condition, _),
                 body,
@@ -83,6 +104,47 @@ impl Display for Instr<'_> {
                 }
                 write!(f, "}} ")
             }
+        }
+    }
+}
+
+impl<'src> Eval<'src> for Instr<'src> {
+    fn eval(&'src self, storage: &mut StackStorage<'src>) -> EvalResult<Value<'src>> {
+        match self {
+            Instr::Expr((expr, _)) => expr.eval(storage),
+            Instr::Let {
+                name: (name, _),
+                ty,
+                value: (expr, _),
+            } => {
+                let value = expr.eval(storage)?;
+                storage.add_var(name, value, None); // TODO: implement ty
+                Ok(Value::Null)
+            }
+            Instr::Set {
+                name: (name, span),
+                value: (expr, _),
+            } => {
+                let value = expr.eval(storage)?;
+                if storage.set_var(name, value) {
+                    Ok(Value::Null)
+                } else {
+                    Err((format!("variable '{}' not defined", name), *span))
+                }
+            }
+            Instr::If {
+                condition,
+                body,
+                r#else,
+            } => todo!(),
+            Instr::Fn {
+                name,
+                args,
+                return_type,
+                body,
+            } => todo!(),
+            Instr::Return(_) => todo!(),
+            Instr::Block(_) => todo!(),
         }
     }
 }
