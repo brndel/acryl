@@ -1,6 +1,5 @@
-document
-{
-    file: "minimal.pdf"
+document {
+    file: "minimal.pdf",
 }
 
 Hello World
