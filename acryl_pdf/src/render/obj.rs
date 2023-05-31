@@ -25,12 +25,12 @@ impl Display for PdfObj {
             PdfObj::StringLiteral(value) => {
                 write!(f, "({})", value.replace('(', "\\(").replace(')', "\\)"))
             }
-            PdfObj::Name(value) => write!(f, "\\{}", value),
+            PdfObj::Name(value) => write!(f, "/{}", value),
             PdfObj::Array(values) => {
                 write!(f, "[")?;
 
                 for value in values {
-                    write!(f, "{}", value);
+                    write!(f, "{} ", value)?;
                 }
 
                 write!(f, "]")
@@ -39,7 +39,7 @@ impl Display for PdfObj {
                 writeln!(f, "<<")?;
 
                 for (name, value) in fields {
-                    writeln!(f, "\\{} {}", name, value)?;
+                    writeln!(f, "/{} {}", name, value)?;
                 }
 
                 write!(f, ">>")
