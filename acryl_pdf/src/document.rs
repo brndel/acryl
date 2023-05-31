@@ -32,6 +32,18 @@ impl Document {
     pub fn add_page(&mut self, size: Vector2) -> &mut Page {
         self.catalog.pages.add_page(size)
     }
+
+    pub fn set_title(&mut self, title: String) {
+        self.info.title = title;
+    }
+
+    pub fn set_author(&mut self, author: String) {
+        self.info.author = author;
+    }
+
+    pub fn set_subject(&mut self, subject: String) {
+        self.info.subject = subject;
+    }
 }
 
 #[derive(Default)]
