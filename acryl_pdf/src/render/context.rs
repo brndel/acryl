@@ -48,7 +48,7 @@ impl Context {
     }
 
     pub fn set_info(&mut self, obj_ref: PdfObjRef) {
-        self.root = Some(obj_ref);
+        self.info = Some(obj_ref);
     }
 
     pub fn build(&self) -> String {
