@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{
     element::PageElement,
     render::{Context, PdfObj, PdfObjRef},
@@ -15,7 +17,7 @@ impl Document {
         Self::default()
     }
 
-    pub fn render(&self) -> String {
+    pub fn render(&self) -> Result<String, fmt::Error> {
         let mut context = Context::new();
 
         let info = self.info.render(&mut context);
@@ -24,7 +26,7 @@ impl Document {
         context.set_info(info);
         context.set_root(root);
 
-        context.build()
+        context.render()
     }
 
     pub fn add_page(&mut self, size: Vector2) -> &mut Page {

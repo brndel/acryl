@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{collections::HashMap, fmt::Write};
 
 use super::obj::PdfObj;
@@ -51,9 +52,10 @@ impl Context {
         self.info = Some(obj_ref);
     }
 
-    pub fn build(&self) -> String {
+    pub fn render(&self) -> Result<String, fmt::Error> {
         let mut s = String::new();
-        writeln!(s, "%PDF-1.7");
+        writeln!(s, "%PDF-1.7")?;
+        
 
         let mut xref: Vec<(u64, u64, u64)> = Vec::new();
 
@@ -61,20 +63,19 @@ impl Context {
 
         for (id, obj) in &self.objects {
             xref.push((*id, 0, s.len() as u64));
-            writeln!(s, "{} 0 obj", id);
-            writeln!(s, "{}", obj);
-            writeln!(s, "endobj");
+            writeln!(s, "{} 0 obj", id)?;
+            writeln!(s, "{}", obj)?;
+            writeln!(s, "endobj")?;
+            writeln!(s, "")?;
         }
 
         let xrefstart = s.len();
 
-        writeln!(s, "xref");
+        writeln!(s, "xref")?;
         for (id, generation, offset) in xref {
-            writeln!(s, "{} 1", id);
-            writeln!(s, "{:0>10} {:0>5} n", offset, generation);
+            writeln!(s, "{} 1", id)?;
+            writeln!(s, "{:0>10} {:0>5} n", offset, generation)?;
         }
-        
-
 
         let trailer = PdfObj::Dict(vec![
             ("Size", self.objects.len().into()),
@@ -82,20 +83,14 @@ impl Context {
             ("Info", self.info.unwrap().into()),
         ]);
 
-        writeln!(s, "trailer");
-        writeln!(s, "{}", trailer);
+        writeln!(s, "trailer")?;
+        writeln!(s, "{}", trailer)?;
 
-        writeln!(s, "startxref");
-        writeln!(s, "{}", xrefstart);
+        writeln!(s, "startxref")?;
+        writeln!(s, "{}", xrefstart)?;
 
-        writeln!(s, "%%EOF");
+        writeln!(s, "%%EOF")?;
 
-        s
+        Ok(s)
     }
-}
-
-
-
-pub(crate) trait Render {
-    fn render(&self, context: &mut Context);
 }
