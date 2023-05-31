@@ -6,8 +6,13 @@ version = 3
 name = "acryl"
 version = "0.1.0"
 dependencies = [
+ "acryl_pdf",
  "chumsky",
 ]
+
+[[package]]
+name = "acryl_pdf"
+version = "0.1.0"
 
 [[package]]
 name = "ahash"
