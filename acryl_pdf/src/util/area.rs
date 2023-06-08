@@ -30,17 +30,17 @@ impl<T: VectorComponent> Area<T> {
 
     pub fn from_points(top_left: Vector2<T>, bottom_right: Vector2<T>) -> Area<T> {
         Self {
-            position: top_left,
+            position: top_left.clone(),
             size: bottom_right - top_left,
         }
     }
 
     pub fn top_left(&self) -> Vector2<T> {
-        self.position
+        self.position.clone()
     }
 
     pub fn top_right(&self) -> Vector2<T> {
-        self.position
+        self.position.clone()
             + Vector2 {
                 x: self.size.x,
                 y: T::default(),
@@ -48,7 +48,7 @@ impl<T: VectorComponent> Area<T> {
     }
 
     pub fn bottom_left(&self) -> Vector2<T> {
-        self.position
+        self.position.clone()
             + Vector2 {
                 x: T::default(),
                 y: self.size.y,
@@ -56,6 +56,6 @@ impl<T: VectorComponent> Area<T> {
     }
 
     pub fn bottom_right(&self) -> Vector2<T> {
-        self.position + self.size
+        self.position.clone() + self.size.clone()
     }
 }

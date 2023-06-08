@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::render::PdfObj;
 
-pub trait VectorComponent: Add<Output = Self> + AddAssign + Sub<Output = Self> + SubAssign + Into<PdfObj> + Default {}
+pub trait VectorComponent: Add<Output = Self> + AddAssign + Sub<Output = Self> + SubAssign + Into<PdfObj> + Default + Copy {}
 pub trait Vector<T: VectorComponent>: Add + Sub + Into<PdfObj> {}
 
 impl VectorComponent for isize {}
