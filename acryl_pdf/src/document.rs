@@ -1,9 +1,8 @@
 use core::fmt;
 
 use crate::{
-    element::PageElement,
     render::{Context, PdfObj, PdfObjRef},
-    util::{Area, Vector2},
+    util::{Area, Vector2}, Page, unit::Pt,
 };
 
 #[derive(Default)]
@@ -29,7 +28,7 @@ impl Document {
         context.render()
     }
 
-    pub fn add_page(&mut self, size: Vector2) -> &mut Page {
+    pub fn add_page(&mut self, size: Vector2<Pt>) -> &mut Page {
         self.catalog.pages.add_page(size)
     }
 
@@ -75,7 +74,7 @@ impl DocumentCatalog {
     fn render(&self, context: &mut Context) -> PdfObjRef {
         let pages = self.pages.render(context);
         let obj = PdfObj::Dict(vec![
-            ("Type", PdfObj::Name("Catalog")),
+            ("Type", PdfObj::Name("Catalog".to_string())),
             ("Pages", pages.into()),
         ]);
 
@@ -110,34 +109,10 @@ impl DocumentPages {
         obj_ref
     }
 
-    fn add_page(&mut self, size: Vector2) -> &mut Page {
-        self.pages.push(Page { area: Area::from_size(size), elements: Vec::new() });
+    fn add_page(&mut self, size: Vector2<Pt>) -> &mut Page {
+        self.pages.push(Page::new(Area::from_size(size)));
 
         self.pages.last_mut().unwrap()
     }
 }
 
-pub struct Page {
-    area: Area,
-    elements: Vec<Box<dyn PageElement>>,
-}
-
-impl Page {
-    fn render(&self, context: &mut Context, parent: PdfObjRef) -> PdfObjRef {
-        let mut content = Vec::new();
-
-        for element in &self.elements {
-            let id = element.render(context, &self.area);
-            content.push(id);
-        }
-
-        let obj = PdfObj::Dict(vec![
-            ("Type", PdfObj::Name("Page".into())),
-            ("Parent", parent.into()),
-            ("MediaBox", self.area.clone().into()),
-            ("Contents", content.into()),
-        ]);
-
-        context.add(obj)
-    }
-}

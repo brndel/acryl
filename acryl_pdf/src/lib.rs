@@ -1,9 +1,10 @@
 mod document;
-mod element;
 mod util;
 mod render;
+pub mod stream;
+mod page;
 
 pub use document::Document;
-pub use document::Page;
+pub use page::Page;
 pub use util::unit;
 pub use util::Vector2;
