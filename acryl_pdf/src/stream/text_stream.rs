@@ -93,4 +93,7 @@ impl Into<StreamInstruction> for TextStreamElement {
 
 
 impl StreamElement<TextStream> for TextStreamElement {
+    fn get_prefix() -> &'static str {
+        "T"
+    }
 }
