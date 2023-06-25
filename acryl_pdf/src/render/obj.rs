@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{fmt::Write, borrow::Cow};
 
 use crate::stream::{Stream, TextStream};
 
@@ -9,7 +9,7 @@ pub enum PdfObj {
     UInt(u64),
     Float(f64),
     StringLiteral(String),
-    Name(String),
+    Name(Cow<'static, str>),
     Array(Vec<Self>),
     Dict(Vec<(&'static str, Self)>),
     Stream(TextStream),
@@ -138,5 +138,14 @@ impl Into<PdfObj> for f64 {
 impl<T: Into<PdfObj>> Into<PdfObj> for Vec<T> {
     fn into(self) -> PdfObj {
         PdfObj::Array(self.into_iter().map(|e| e.into()).collect())
+    }
+}
+
+impl<T: Into<PdfObj>> Into<PdfObj> for Option<T> {
+    fn into(self) -> PdfObj {
+        match self {
+            Some(obj) => obj.into(),
+            None => PdfObj::Null,
+        }
     }
 }

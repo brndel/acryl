@@ -2,7 +2,9 @@ use core::fmt;
 
 use crate::{
     render::{Context, PdfObj, PdfObjRef},
-    util::{Area, Vector2}, Page, unit::Pt,
+    unit::Pt,
+    util::{Area, Vector2},
+    Page,
 };
 
 #[derive(Default)]
@@ -74,7 +76,7 @@ impl DocumentCatalog {
     fn render(&self, context: &mut Context) -> PdfObjRef {
         let pages = self.pages.render(context);
         let obj = PdfObj::Dict(vec![
-            ("Type", PdfObj::Name("Catalog".to_string())),
+            ("Type", PdfObj::Name("Catalog".into())),
             ("Pages", pages.into()),
         ]);
 
