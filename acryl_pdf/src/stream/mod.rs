@@ -1,26 +1,23 @@
 
-mod text_stream;
+mod text;
+mod graphics_state;
+mod path_construction;
+mod path_painting;
+mod color;
 
 use std::fmt;
 use std::fmt::Write;
 
-pub use text_stream::TextStream;
-pub use text_stream::TextStreamElement;
+pub use text::TextStream;
+pub use text::TextStreamElement;
 
 use crate::render::PdfObj;
 
 pub type StreamInstruction = (Vec<PdfObj>, &'static str);
 
 pub trait Stream<E: StreamElement<Self>>: Sized + From<E> + Into<Vec<E>> {
-    fn get_name() -> &'static str;
-
-    fn get_start() -> &'static str {
-        "B"
-    }
-
-    fn get_end() -> &'static str {
-        "E"
-    }
+    fn get_start() -> &'static str;
+    fn get_end() -> &'static str;
 
     fn push(&mut self, element: E);
 
@@ -32,23 +29,19 @@ pub trait Stream<E: StreamElement<Self>>: Sized + From<E> + Into<Vec<E>> {
     fn render(self) -> Result<String, fmt::Error> {
         let mut s = String::new();
 
-        writeln!(s, "{}{}", Self::get_start(), Self::get_name())?;
+        writeln!(s, "{}", Self::get_start())?;
 
         for element in self.into() {
             element.render(&mut s)?;
         }
 
-        writeln!(s, "{}{}", Self::get_end(), Self::get_name())?;
+        writeln!(s, "{}", Self::get_end())?;
 
         Ok(s)
     }
 }
 
 pub trait StreamElement<S: Stream<Self>>: Sized + Into<StreamInstruction> {
-    fn get_prefix() -> &'static str {
-        S::get_name()
-    }
-
     fn then(self, element: Self) -> S {
         S::from(self).then(element)
     }
@@ -58,8 +51,9 @@ pub trait StreamElement<S: Stream<Self>>: Sized + Into<StreamInstruction> {
 
         for value in values {
             value.render(f)?;
+            write!(f, " ")?;
         }
 
-        writeln!(f, "{}{}", Self::get_prefix(), operator)
+        writeln!(f, "{}", operator)
     }
 }
