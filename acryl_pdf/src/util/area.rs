@@ -1,6 +1,6 @@
 use crate::render::PdfObj;
 
-use super::{vec::VectorComponent, Vector2};
+use super::{vec::VectorComponent, Vector2, transformer::CoordinateTransformer};
 
 #[derive(Clone)]
 pub struct Area<T: VectorComponent> {
@@ -76,5 +76,14 @@ impl<T: VectorComponent> Area<T> {
 
     pub fn right(&self) -> T {
         self.position.x + self.size.x
+    }
+}
+
+impl<T: VectorComponent> CoordinateTransformer<Vector2<T>> for Area<T> {
+    fn transform(&self, value: Vector2<T>) -> Vector2<T> {
+        Vector2 {
+            x: value.x - self.left(),
+            y: self.bottom() - (value.y - self.top()),
+        }
     }
 }
