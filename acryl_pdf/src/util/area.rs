@@ -1,6 +1,6 @@
 use crate::render::PdfObj;
 
-use super::{Vector2, vec::VectorComponent};
+use super::{vec::VectorComponent, Vector2};
 
 #[derive(Clone)]
 pub struct Area<T: VectorComponent> {
@@ -36,26 +36,45 @@ impl<T: VectorComponent> Area<T> {
     }
 
     pub fn top_left(&self) -> Vector2<T> {
-        self.position.clone()
+        Vector2 {
+            x: self.left(),
+            y: self.top(),
+        }
     }
 
     pub fn top_right(&self) -> Vector2<T> {
-        self.position.clone()
-            + Vector2 {
-                x: self.size.x,
-                y: T::default(),
-            }
+        Vector2 {
+            x: self.right(),
+            y: self.top(),
+        }
     }
 
     pub fn bottom_left(&self) -> Vector2<T> {
-        self.position.clone()
-            + Vector2 {
-                x: T::default(),
-                y: self.size.y,
-            }
+        Vector2 {
+            x: self.left(),
+            y: self.bottom(),
+        }
     }
 
     pub fn bottom_right(&self) -> Vector2<T> {
-        self.position.clone() + self.size.clone()
+        Vector2 {
+            x: self.right(),
+            y: self.bottom(),
+        }
+    }
+
+    pub fn top(&self) -> T {
+        self.position.y
+    }
+
+    pub fn bottom(&self) -> T {
+        self.position.y + self.size.y
+    }
+    pub fn left(&self) -> T {
+        self.position.x
+    }
+
+    pub fn right(&self) -> T {
+        self.position.x + self.size.x
     }
 }
