@@ -1,6 +1,8 @@
 use core::fmt;
 use std::{collections::HashMap, fmt::Write};
 
+use crate::pdf_dict;
+
 use super::obj::PdfObj;
 
 #[derive(Default)]
@@ -117,11 +119,11 @@ impl Context {
             }
         }
 
-        let trailer = PdfObj::Dict(vec![
-            ("Size", obj_count.into()),
-            ("Root", self.root.unwrap().into()),
-            ("Info", self.info.unwrap().into()),
-        ]);
+        let trailer = pdf_dict!(
+            "Size" => obj_count.into(),
+            "Root" => self.root.unwrap().into(),
+            "Info" => self.info.unwrap().into(),
+        );
 
         writeln!(s, "trailer")?;
         trailer.render(&mut s)?;

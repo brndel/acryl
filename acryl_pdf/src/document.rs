@@ -1,10 +1,10 @@
 use core::fmt;
 
 use crate::{
-    render::{Context, PdfObj, PdfObjRef},
+    render::{Context, PdfObjRef, PdfObj},
     unit::Pt,
-    util::{Area, Vector2},
-    Page,
+    util::{constants::PAGE_SIZE_A4, Area, Vector2},
+    Page, pdf_dict,
 };
 
 #[derive(Default)]
@@ -18,7 +18,7 @@ impl Document {
         Self::default()
     }
 
-    pub fn render(&self) -> Result<String, fmt::Error> {
+    pub fn render(self) -> Result<String, fmt::Error> {
         let mut context = Context::new();
 
         let info = self.info.render(&mut context);
@@ -30,7 +30,7 @@ impl Document {
         context.render()
     }
 
-    pub fn add_page(&mut self, size: Vector2<Pt>) -> &mut Page {
+    pub fn add_page(&mut self, size: Option<Vector2<Pt>>) -> &mut Page {
         self.catalog.pages.add_page(size)
     }
 
@@ -56,12 +56,12 @@ struct DocumentInfo {
 
 impl DocumentInfo {
     fn render(&self, context: &mut Context) -> PdfObjRef {
-        let obj = PdfObj::Dict(vec![
-            ("Title", PdfObj::StringLiteral(self.title.clone())),
-            ("Author", PdfObj::StringLiteral(self.author.clone())),
-            ("Subject", PdfObj::StringLiteral(self.subject.clone())),
-            ("Creator", PdfObj::StringLiteral("Acryl".into())),
-        ]);
+        let obj = pdf_dict!(
+            "Title" => PdfObj::StringLiteral(self.title.clone().into()),
+            "Author" => PdfObj::StringLiteral(self.author.clone().into()),
+            "Subject" => PdfObj::StringLiteral(self.subject.clone().into()),
+            "Creator" => PdfObj::StringLiteral("Acryl".into()),
+        );
 
         context.add(obj)
     }
@@ -73,48 +73,60 @@ struct DocumentCatalog {
 }
 
 impl DocumentCatalog {
-    fn render(&self, context: &mut Context) -> PdfObjRef {
+    fn render(self, context: &mut Context) -> PdfObjRef {
         let pages = self.pages.render(context);
-        let obj = PdfObj::Dict(vec![
-            ("Type", PdfObj::Name("Catalog".into())),
-            ("Pages", pages.into()),
-        ]);
+
+        let obj = pdf_dict!(
+            "Type" => PdfObj::Name("Catalog".into()),
+            "Pages" => pages.into(),
+        );
 
         context.add(obj)
     }
 }
 
-#[derive(Default)]
 struct DocumentPages {
     pages: Vec<Page>,
+    area: Area<Pt>,
+}
+
+impl Default for DocumentPages {
+    fn default() -> Self {
+        Self {
+            pages: Default::default(),
+            area: Area::from_size(PAGE_SIZE_A4),
+        }
+    }
 }
 
 impl DocumentPages {
-    fn render(&self, context: &mut Context) -> PdfObjRef {
+    fn render(self, context: &mut Context) -> PdfObjRef {
         let obj_ref = context.reserve();
 
         let mut kids = Vec::new();
 
-        for page in &self.pages {
+        for page in self.pages {
             let id = page.render(context, obj_ref);
             kids.push(id);
         }
 
-        let obj = PdfObj::Dict(vec![
-            ("Type", PdfObj::Name("Pages".into())),
-            ("Count", kids.len().into()),
-            ("Kids", kids.into()),
-        ]);
+        let obj = pdf_dict!(
+            "Type" => PdfObj::Name("Pages".into()),
+            "MediaBox" => self.area.into(),
+            "Count" => kids.len().into(),
+            "Kids" => kids.into(),
+        );
 
         context.insert(obj_ref, obj);
 
         obj_ref
     }
 
-    fn add_page(&mut self, size: Vector2<Pt>) -> &mut Page {
-        self.pages.push(Page::new(Area::from_size(size)));
+    fn add_page(&mut self, size: Option<Vector2<Pt>>) -> &mut Page {
+        self.pages.push(Page::new(
+            size.map_or_else(|| self.area.clone(), |size| Area::from_size(size)),
+        ));
 
         self.pages.last_mut().unwrap()
     }
 }
-
