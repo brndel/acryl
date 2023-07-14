@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Write};
+use std::{borrow::Cow, io::Write};
 
 use crate::stream::Stream;
 
@@ -12,7 +12,7 @@ pub enum PdfObj {
     Name(Cow<'static, str>),
     Array(Vec<Self>),
     Dict(Vec<(Cow<'static, str>, Self)>),
-    Stream(Stream),
+    Stream(Vec<u8>),
     Refernce(u64, u64),
 }
 
@@ -24,7 +24,7 @@ macro_rules! pdf_dict {
 }
 
 impl PdfObj {
-    pub fn render(self, f: &mut dyn Write) -> std::fmt::Result {
+    pub fn render<F: Write>(self, f: &mut F) -> std::io::Result<()> {
         match self {
             PdfObj::Null => write!(f, "null"),
             PdfObj::Bool(value) => write!(f, "{}", if value { "true" } else { "false" }),
@@ -56,14 +56,13 @@ impl PdfObj {
 
                 write!(f, ">>")
             }
-            PdfObj::Stream(stream) => {
-                let stream_content = stream.render()?;
-                let dict = pdf_dict!("Length" => stream_content.len().into());
+            PdfObj::Stream(content) => {
+                // let stream_content = stream.render()?;
+                let dict = pdf_dict!("Length" => content.len().into());
                 dict.render(f)?;
                 writeln!(f, "")?;
                 writeln!(f, "stream")?;
-                write!(f, "{}", stream_content)?;
-
+                f.write(&content)?;
                 write!(f, "endstream")
             }
             PdfObj::Refernce(id, generation) => write!(f, "{} {} R", id, generation),

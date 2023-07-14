@@ -1,16 +1,19 @@
 use core::fmt;
+use std::{collections::HashMap, rc::Rc, io::{Write, Seek, self}};
 
 use crate::{
     render::{Context, PdfObjRef, PdfObj},
     unit::Pt,
     util::{constants::PAGE_SIZE_A4, Area, Vector2},
-    Page, pdf_dict,
+    Page, pdf_dict, font::{ExternalFont, FontRef},
 };
 
 #[derive(Default)]
 pub struct Document {
     info: DocumentInfo,
     catalog: DocumentCatalog,
+    font_counter: u16,
+    font_dict: HashMap<String, Rc<ExternalFont>>,
 }
 
 impl Document {
@@ -18,8 +21,8 @@ impl Document {
         Self::default()
     }
 
-    pub fn render(self) -> Result<String, fmt::Error> {
-        let mut context = Context::new();
+    pub fn render<F: Write + Seek>(self, f: &mut F) -> io::Result<()> {
+        let mut context = Context::new(self.font_dict);
 
         let info = self.info.render(&mut context);
         let root = self.catalog.render(&mut context);
@@ -27,7 +30,7 @@ impl Document {
         context.set_info(info);
         context.set_root(root);
 
-        context.render()
+        context.render(f)
     }
 
     pub fn add_page(&mut self, size: Option<Vector2<Pt>>) -> &mut Page {
@@ -44,6 +47,15 @@ impl Document {
 
     pub fn set_subject(&mut self, subject: String) {
         self.info.subject = subject;
+    }
+
+    pub fn add_font(&mut self, font: Rc<ExternalFont>) -> FontRef {
+        self.font_counter += 1;
+        let name = format!("F{}", self.font_counter); 
+        self.font_dict.insert(name.clone(), font);
+        let font_ref = FontRef(name);
+
+        font_ref
     }
 }
 
@@ -86,15 +98,15 @@ impl DocumentCatalog {
 }
 
 struct DocumentPages {
+    default_page_size: Area<Pt>,
     pages: Vec<Page>,
-    area: Area<Pt>,
 }
 
 impl Default for DocumentPages {
     fn default() -> Self {
         Self {
-            pages: Default::default(),
-            area: Area::from_size(PAGE_SIZE_A4),
+            default_page_size: Area::from_size(PAGE_SIZE_A4),
+            pages: Vec::default()
         }
     }
 }
@@ -112,7 +124,6 @@ impl DocumentPages {
 
         let obj = pdf_dict!(
             "Type" => PdfObj::Name("Pages".into()),
-            "MediaBox" => self.area.into(),
             "Count" => kids.len().into(),
             "Kids" => kids.into(),
         );
@@ -124,7 +135,7 @@ impl DocumentPages {
 
     fn add_page(&mut self, size: Option<Vector2<Pt>>) -> &mut Page {
         self.pages.push(Page::new(
-            size.map_or_else(|| self.area.clone(), |size| Area::from_size(size)),
+            size.map_or_else(|| self.default_page_size.clone(), |size| Area::from_size(size)),
         ));
 
         self.pages.last_mut().unwrap()

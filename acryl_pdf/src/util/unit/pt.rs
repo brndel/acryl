@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Sub, SubAssign, Neg},
 };
 
 use crate::{render::PdfObj, util::vec::VectorComponent};
@@ -57,6 +57,14 @@ impl Sub for Pt {
 impl SubAssign for Pt {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0
+    }
+}
+
+impl Neg for Pt {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self(-self.0)
     }
 }
 

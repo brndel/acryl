@@ -2,17 +2,17 @@ use crate::{
     render::{Context, PdfObj, PdfObjRef},
     unit::Pt,
     util::{Area, CoordinateTransformer},
-    Vector2, stream::Stream, pdf_dict,
+    Vector2, stream::Stream, pdf_dict, resource::Resources,
 };
 
 pub struct Page {
     area: Area<Pt>,
-    content: Vec<PdfObj>
+    content: Vec<PdfObj>,
 }
 
 impl Page {
     pub fn new(area: Area<Pt>) -> Self {
-        Self { area, content: Vec::new() }
+        Self { area, content: Vec::default() }
     }
 
     pub fn render(self, context: &mut Context, parent: PdfObjRef) -> PdfObjRef {
@@ -28,13 +28,17 @@ impl Page {
             "Parent" => parent.into(),
             "MediaBox" => self.area.into(),
             "Contents" => content_refs.into(),
+            "Resources" => Resources::from(context).into()
         );
 
         context.add(obj)
     }
 
     pub fn push(&mut self, stream: Stream) {
-        self.content.push(PdfObj::Stream(stream))
+        if let Ok(content) = stream.render() {
+            self.content.push(PdfObj::Stream(content))
+        }
+
     }
 }
 

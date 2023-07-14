@@ -1,7 +1,6 @@
-use core::fmt;
-use std::{collections::HashMap, fmt::Write};
+use std::{collections::HashMap, io::{Write, self, Seek}, rc::Rc};
 
-use crate::pdf_dict;
+use crate::{font::ExternalFont, pdf_dict};
 
 use super::obj::PdfObj;
 
@@ -11,6 +10,8 @@ pub struct Context {
     root: Option<PdfObjRef>,
     info: Option<PdfObjRef>,
     objects: HashMap<u64, PdfObj>,
+    font_map: HashMap<String, PdfObjRef>,
+    font_object: Option<PdfObjRef>,
 }
 
 #[derive(Clone, Copy)]
@@ -23,8 +24,21 @@ impl Into<PdfObj> for PdfObjRef {
 }
 
 impl Context {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(fonts: HashMap<String, Rc<ExternalFont>>) -> Self {
+        let mut this = Self::default();
+        let mut font_object_fields = Vec::default();
+
+        for (font_name, font) in fonts {
+            let id = font.render(&mut this);
+            this.font_map.insert(font_name.clone(), id);
+            font_object_fields.push((font_name.into(), id.into()));
+        }
+
+        let font_obj = this.add(PdfObj::Dict(font_object_fields));
+
+        this.font_object = Some(font_obj);
+
+        return this;
     }
 
     pub fn add(&mut self, obj: PdfObj) -> PdfObjRef {
@@ -54,14 +68,17 @@ impl Context {
         self.info = Some(obj_ref);
     }
 
-    pub fn render(self) -> Result<String, fmt::Error> {
-        let mut s = String::new();
-        writeln!(s, "%PDF-1.7")?;
+    pub fn get_font_obj(&self) -> PdfObjRef {
+        self.font_object.unwrap()
+    }
+
+    pub fn render<F: Write + Seek>(self, f: &mut F) -> io::Result<()> {
+        writeln!(f, "%PDF-1.7")?;
 
         struct XRefEntry {
             id: u64,
             generation: u64,
-            offset: usize,
+            offset: u64,
         }
 
         let mut xref: Vec<XRefEntry> = Vec::new();
@@ -78,13 +95,13 @@ impl Context {
             xref.push(XRefEntry {
                 id,
                 generation: 0,
-                offset: s.len(),
+                offset: f.stream_position()?,
             });
-            writeln!(s, "{} 0 obj", id)?;
-            obj.render(&mut s)?;
-            writeln!(s, "")?;
-            writeln!(s, "endobj")?;
-            writeln!(s, "")?;
+            writeln!(f, "{} 0 obj", id)?;
+            obj.render(f)?;
+            writeln!(f, "")?;
+            writeln!(f, "endobj")?;
+            writeln!(f, "")?;
         }
 
         xref.sort_by(|a, b| a.id.cmp(&b.id));
@@ -93,7 +110,7 @@ impl Context {
             xref.into_iter().fold(Vec::default(), |mut groups, entry| {
                 if let Some(last_group) = groups.last_mut() {
                     if let Some(last) = last_group.last_mut() {
-                        if last.id + 1 == entry.id  {
+                        if last.id + 1 == entry.id {
                             last_group.push(entry);
                         } else {
                             groups.push(vec![entry]);
@@ -108,14 +125,14 @@ impl Context {
                 groups
             });
 
-        let xrefstart = s.len();
+        let xrefstart = f.stream_position()?;
 
-        writeln!(s, "xref")?;
+        writeln!(f, "xref")?;
         for group in grouped_xref {
             let first = group.first().unwrap();
-            writeln!(s, "{} {}", first.id, group.len())?;
+            writeln!(f, "{} {}", first.id, group.len())?;
             for entry in group {
-                writeln!(s, "{:0>10} {:0>5} n", entry.offset, entry.generation)?;
+                writeln!(f, "{:0>10} {:0>5} n", entry.offset, entry.generation)?;
             }
         }
 
@@ -125,14 +142,14 @@ impl Context {
             "Info" => self.info.unwrap().into(),
         );
 
-        writeln!(s, "trailer")?;
-        trailer.render(&mut s)?;
+        writeln!(f, "trailer")?;
+        trailer.render(f)?;
 
-        writeln!(s, "startxref")?;
-        writeln!(s, "{}", xrefstart)?;
+        writeln!(f, "startxref")?;
+        writeln!(f, "{}", xrefstart)?;
 
-        writeln!(s, "%%EOF")?;
+        writeln!(f, "%%EOF")?;
 
-        Ok(s)
+        Ok(())
     }
 }

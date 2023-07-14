@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Neg};
 
 use crate::render::PdfObj;
 
@@ -20,7 +20,7 @@ impl VectorComponent for u64 {}
 impl VectorComponent for f32 {}
 impl VectorComponent for f64 {}
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Vector2<T: VectorComponent> {
     pub x: T,
     pub y: T,
@@ -65,5 +65,11 @@ impl<T: VectorComponent> SubAssign for Vector2<T> {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+
+impl<T: VectorComponent> From<T> for Vector2<T> {
+    fn from(value: T) -> Self {
+        Self { x: value, y: value }
     }
 }
