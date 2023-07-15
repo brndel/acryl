@@ -124,6 +124,17 @@ impl ExternalFont {
 
         let font_file = PdfObj::Stream(file_data);
         let font_file = context.add(font_file);
+        
+        let cmap = CMap::from(self);
+        let cid_to_unicode_map = cmap.to_unicode_map(&self.name);
+        let cid_to_unicode_map = context.add(PdfObj::Stream(cid_to_unicode_map));
+
+        let bbox = vec![
+            0,
+            cmap.max_height,
+            cmap.total_width,
+            cmap.max_height,
+        ];
 
         let descriptor = pdf_dict!(
             "Type" => PdfObj::Name("FontDescriptor".into()),
@@ -133,13 +144,10 @@ impl ExternalFont {
             "CapHeight" => metrics.cap_height.into(),
             "ItalicAngle" => 0.into(),
             "FontFile2" => font_file.into(),
-            // "FontBBox" =>
+            "FontBBox" => bbox.into(),
         );
         let descriptor = context.add(descriptor);
-
-        let cmap = CMap::from(self);
-        let cid_to_unicode_map = cmap.to_unicode_map(&self.name);
-        let cid_to_unicode_map = context.add(PdfObj::Stream(cid_to_unicode_map));
+        
 
         let widths = self.create_width_vector();
 
