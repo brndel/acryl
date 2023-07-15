@@ -74,29 +74,30 @@ impl ExternalFont {
         Some(GlyphMetrics { width, height })
     }
 
-    fn unit_to_pt<U: Into<f64>>(&self, unit: U, font_size: f64) -> Pt {
+    pub(crate) fn unit_to_pt<U: Into<f64>>(&self, unit: U, font_size: f64) -> Pt {
         Pt(unit.into() / (self.face.as_face_ref().units_per_em() as f64) * font_size)
     }
 
-    pub fn get_glyph_id_info(&self, id: u16, font_size: f64) -> Option<GlyphInfo> {
-        self.get_glyph_info(GlyphId(id), font_size)
-    }
-
-    fn get_glyph_info(&self, glyph_id: GlyphId, font_size: f64) -> Option<GlyphInfo> {
+    fn get_glyph_info(&self, glyph_id: GlyphId) -> Option<GlyphInfo> {
         let face = self.face.as_face_ref();
 
         let name = face.glyph_name(glyph_id)?;
         let advance = Vector2 {
-            x: self.unit_to_pt(face.glyph_hor_advance(glyph_id).unwrap_or(0), font_size),
-            y: self.unit_to_pt(face.glyph_ver_advance(glyph_id).unwrap_or(0), font_size),
+            x: face.glyph_hor_advance(glyph_id).unwrap_or(0),
+            y: face.glyph_ver_advance(glyph_id).unwrap_or(0),
         };
 
         let id = glyph_id.0;
-        Some(GlyphInfo { id, name, advance })
+        Some(GlyphInfo {
+            font: &self,
+            id,
+            name,
+            advance,
+        })
     }
 
-    pub fn get_char_info(&self, c: char, font_size: f64) -> Option<GlyphInfo> {
-        self.get_glyph_info(self.face.as_face_ref().glyph_index(c)?, font_size)
+    pub fn get_char_info(&self, c: char) -> Option<GlyphInfo> {
+        self.get_glyph_info(self.face.as_face_ref().glyph_index(c)?)
     }
 
     pub fn measure_text(&self, text: &str, font_size: f64) -> Pt {

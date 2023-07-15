@@ -1,4 +1,4 @@
-use std::{rc::Rc, str::Chars};
+use std::rc::Rc;
 
 use crate::{
     font::{ExternalFont, FontRef},
@@ -107,7 +107,7 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
         let mut gid_list = Vec::new();
 
         for c in text.into().chars() {
-            if let Some(info) = self.font.as_ref().get_char_info(c, 0.0) {
+            if let Some(info) = self.font.as_ref().get_char_info(c) {
                 gid_list.push(info.id);
             }
         }
