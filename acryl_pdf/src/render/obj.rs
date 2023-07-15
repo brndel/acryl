@@ -1,7 +1,5 @@
 use std::{borrow::Cow, io::Write};
 
-use crate::stream::Stream;
-
 pub enum PdfObj {
     Null,
     Bool(bool),
@@ -9,6 +7,7 @@ pub enum PdfObj {
     UInt(u64),
     Float(f64),
     StringLiteral(Cow<'static, str>),
+    HexString(Vec<u8>),
     Name(Cow<'static, str>),
     Array(Vec<Self>),
     Dict(Vec<(Cow<'static, str>, Self)>),
@@ -33,6 +32,15 @@ impl PdfObj {
             PdfObj::Float(value) => write!(f, "{}", value),
             PdfObj::StringLiteral(value) => {
                 write!(f, "({})", value.replace('(', "\\(").replace(')', "\\)"))
+            }
+            PdfObj::HexString(value) => {
+                write!(f, "<")?;
+
+                for v in value {
+                    write!(f, "{:02x}", v)?;
+                }
+
+                write!(f, ">")
             }
             PdfObj::Name(value) => write!(f, "/{}", value),
             PdfObj::Array(values) => {

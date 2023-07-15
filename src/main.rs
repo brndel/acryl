@@ -47,15 +47,7 @@ fn build_file(mut file: File) {
 
     let mut builder = Streambuilder::new(page);
 
-    let mut text = String::new();
-
-    if let Some(a) = font_dejavu.get_char_info('a', 12.0) {
-        if let Some(ch) = char::from_u32(a.id as u32) {
-            text.push(ch);
-        }
-    }
-
-    // let text = "the_quick-brown/fox_jumps'over*the#lazy.dog";
+    let text = "the_quick-brown/fox_jumps'over*the#lazy.dogäöü€@<>()";
 
     draw_marked_text(
         &text,
@@ -64,7 +56,7 @@ fn build_file(mut file: File) {
             y: Pt(20.0),
         },
         &mut builder,
-        &font_dejavu,
+        font_dejavu,
         font_dejavu_ref,
         12.0,
     );
@@ -75,7 +67,7 @@ fn build_file(mut file: File) {
             y: Pt(40.0),
         },
         &mut builder,
-        &font_notosans,
+        font_notosans,
         font_notosans_ref,
         12.0,
     );
@@ -86,7 +78,7 @@ fn build_file(mut file: File) {
             y: Pt(60.0),
         },
         &mut builder,
-        &font_freemono,
+        font_freemono,
         font_freemono_ref,
         12.0,
     );
@@ -97,15 +89,15 @@ fn build_file(mut file: File) {
     doc.render(&mut file).unwrap()
 }
 
-fn draw_marked_text(
-    text: &String,
+fn draw_marked_text<S: AsRef<str>>(
+    text: S,
     position: Vector2<Pt>,
     builder: &mut Streambuilder,
-    font: &ExternalFont,
+    font: Rc<ExternalFont>,
     font_ref: FontRef,
     font_size: f64,
 ) {
-    let width = font.measure_text(text, font_size);
+    let width = font.measure_text(text.as_ref(), font_size);
 
     let metrics = font.metrics().sized(font_size);
     println!("[{}] asc: {} desc: {} height: {}", font.name(), metrics.ascender(), metrics.descender(), metrics.height());
@@ -123,10 +115,10 @@ fn draw_marked_text(
         Color::RGB(1.0, 0.8, 0.6),
     );
 
-    let mut text_builder = builder.text(font_ref, font_size);
+    let mut text_builder = builder.text(font, font_ref, font_size);
     text_builder.set_scale(100);
     text_builder.set_position(position);
-    text_builder.draw_text(text);
+    text_builder.draw_text(text.as_ref());
 
     drop(text_builder);
 }

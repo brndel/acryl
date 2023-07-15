@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::{fs, io, path::Path};
 
-use owned_ttf_parser::cmap::{Subtable, Subtable2};
+use owned_ttf_parser::cmap::Subtable2;
 use owned_ttf_parser::name_id::POST_SCRIPT_NAME;
 // use owned_ttf_parser::name_id::FULL_NAME;
 use owned_ttf_parser::FaceParsingError;

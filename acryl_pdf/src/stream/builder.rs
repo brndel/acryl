@@ -1,15 +1,19 @@
+use std::{rc::Rc, str::Chars};
+
 use crate::{
+    font::{ExternalFont, FontRef},
     unit::Pt,
     util::{Area, CoordinateTransformer},
-    Page, Vector2, font::FontRef,
+    Page, Vector2,
 };
 
 use super::{
     color::{Color, ColorOperation},
+    graphics_state::GraphicsState,
     path_construction::PathConstruction,
     path_painting::PathPainting,
     text::{TextControl, TextStreamElement},
-    Stream, StreamInstruction, graphics_state::GraphicsState,
+    Stream, StreamInstruction,
 };
 
 pub struct Streambuilder<'a> {
@@ -33,8 +37,8 @@ impl<'a> Streambuilder<'a> {
         self.instructions.push(instr.into())
     }
 
-    pub fn text<'b>(&'b mut self, font: FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
-        TextStreambuilder::new(self, font, size)
+    pub fn text<'b>(&'b mut self, font: Rc<ExternalFont>, font_ref: FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
+        TextStreambuilder::new(self, font, font_ref, size)
     }
 
     pub fn draw_rect(&mut self, rect: Area<Pt>, color: Color) {
@@ -43,24 +47,30 @@ impl<'a> Streambuilder<'a> {
         self.push(GraphicsState::SaveState);
         self.push(PathConstruction::Rect(rect));
         self.push(ColorOperation::FillColor(color));
-        self.push(PathPainting::Fill(
-            super::path_painting::FillRule::EvenOdd,
-        ));
+        self.push(PathPainting::Fill(super::path_painting::FillRule::EvenOdd));
         self.push(GraphicsState::RestoreState);
-
     }
 }
 
 pub struct TextStreambuilder<'a, 'b> {
     builder: &'a mut Streambuilder<'b>,
+    font: Rc<ExternalFont>,
 }
 
 impl<'a, 'b> TextStreambuilder<'a, 'b> {
-    pub fn new(builder: &'a mut Streambuilder<'b>, font: FontRef, size: f64) -> Self {
+    pub fn new(
+        builder: &'a mut Streambuilder<'b>,
+        font: Rc<ExternalFont>,
+        font_ref: FontRef,
+        size: f64,
+    ) -> Self {
         builder.push(TextControl::Begin);
-        // TODO: add proper fonts and remove this default value
-        builder.push(TextStreamElement::Font(font.as_ref().to_owned(), Pt(size)));
-        Self { builder }
+        builder.push(TextStreamElement::Font(
+            font_ref.as_ref().to_owned(),
+            Pt(size),
+        ));
+        // builder.push(TextStreamElement::Font("F23".to_owned(), Pt(size)));
+        Self { builder, font }
     }
 
     pub fn set_position(&mut self, position: Vector2<Pt>) {
@@ -70,9 +80,7 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
     }
 
     pub fn set_scale(&mut self, scale: u16) {
-        self.builder.push(TextStreamElement::Scale(
-            scale
-        ))
+        self.builder.push(TextStreamElement::Scale(scale))
     }
 
     pub fn set_line_height(&mut self, height: Pt) {
@@ -95,8 +103,22 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
         self.builder.push(TextStreamElement::Rise(rise))
     }
 
-    pub fn draw_text<T: ToString>(&mut self, text: T) {
-        self.builder.push(TextStreamElement::Text(text.to_string()))
+    pub fn draw_text<T: Into<String>>(&mut self, text: T) {
+        let mut gid_list = Vec::new();
+
+        for c in text.into().chars() {
+            if let Some(info) = self.font.as_ref().get_char_info(c, 0.0) {
+                gid_list.push(info.id);
+            }
+        }
+
+        let byte_list = gid_list
+            .into_iter()
+            .map(|gid| gid.to_be_bytes())
+            .collect::<Vec<[u8; 2]>>()
+            .concat();
+
+        self.builder.push(TextStreamElement::Text(byte_list))
     }
 }
 

@@ -18,7 +18,7 @@ pub enum TextStreamElement {
     Leading(Pt),
     RenderMode(RenderMode),
     Rise(Pt),
-    Text(String),
+    Text(Vec<u8>),
 }
 
 #[repr(u8)]
@@ -57,7 +57,7 @@ impl Into<StreamInstruction> for TextStreamElement {
             TextStreamElement::Leading(v) => (vec![v.into()], "TL"),
             TextStreamElement::RenderMode(v) => (vec![(v as u8).into()], "Tr"),
             TextStreamElement::Rise(v) => (vec![v.into()], "Ts"),
-            TextStreamElement::Text(text) => (vec![PdfObj::StringLiteral(text.into())], "Tj"),
+            TextStreamElement::Text(text) => (vec![PdfObj::HexString(text)], "Tj"),
         }
     }
 }
