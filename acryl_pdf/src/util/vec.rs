@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Neg};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use crate::render::PdfObj;
 

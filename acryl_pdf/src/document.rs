@@ -1,4 +1,3 @@
-use core::fmt;
 use std::{collections::HashMap, rc::Rc, io::{Write, Seek, self}};
 
 use crate::{

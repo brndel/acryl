@@ -1,4 +1,4 @@
-use std::{fs::{self, File}, rc::Rc, time::Instant};
+use std::{fs::File, rc::Rc, time::Instant};
 
 use acryl_pdf::{
     font::{ExternalFont, FontRef},

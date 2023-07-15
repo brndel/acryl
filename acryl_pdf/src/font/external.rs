@@ -88,12 +88,7 @@ impl ExternalFont {
         };
 
         let id = glyph_id.0;
-        Some(GlyphInfo {
-            font: &self,
-            id,
-            name,
-            advance,
-        })
+        Some(GlyphInfo::new(&self, id, name, advance))
     }
 
     pub fn get_char_info(&self, c: char) -> Option<GlyphInfo> {
@@ -124,17 +119,12 @@ impl ExternalFont {
 
         let font_file = PdfObj::Stream(file_data);
         let font_file = context.add(font_file);
-        
+
         let cmap = CMap::from(self);
         let cid_to_unicode_map = cmap.to_unicode_map(&self.name);
         let cid_to_unicode_map = context.add(PdfObj::Stream(cid_to_unicode_map));
 
-        let bbox = vec![
-            0,
-            cmap.max_height,
-            cmap.total_width,
-            cmap.max_height,
-        ];
+        let bbox = vec![0, cmap.max_height, cmap.total_width, cmap.max_height];
 
         let descriptor = pdf_dict!(
             "Type" => PdfObj::Name("FontDescriptor".into()),
@@ -147,7 +137,6 @@ impl ExternalFont {
             "FontBBox" => bbox.into(),
         );
         let descriptor = context.add(descriptor);
-        
 
         let widths = self.create_width_vector();
 

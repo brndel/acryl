@@ -108,7 +108,7 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
 
         for c in text.into().chars() {
             if let Some(info) = self.font.as_ref().get_char_info(c) {
-                gid_list.push(info.id);
+                gid_list.push(info.id());
             }
         }
 
