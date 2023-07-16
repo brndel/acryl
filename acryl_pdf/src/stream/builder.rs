@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    font::{ExternalFont, FontRef},
+    font::{Font, FontRef},
     unit::Pt,
     util::{Area, CoordinateTransformer},
     Page, Vector2,
@@ -37,7 +37,7 @@ impl<'a> Streambuilder<'a> {
         self.instructions.push(instr.into())
     }
 
-    pub fn text<'b>(&'b mut self, font: Rc<ExternalFont>, font_ref: FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
+    pub fn text<'b>(&'b mut self, font: Rc<Font>, font_ref: FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
         TextStreambuilder::new(self, font, font_ref, size)
     }
 
@@ -54,13 +54,13 @@ impl<'a> Streambuilder<'a> {
 
 pub struct TextStreambuilder<'a, 'b> {
     builder: &'a mut Streambuilder<'b>,
-    font: Rc<ExternalFont>,
+    font: Rc<Font>,
 }
 
 impl<'a, 'b> TextStreambuilder<'a, 'b> {
     pub fn new(
         builder: &'a mut Streambuilder<'b>,
-        font: Rc<ExternalFont>,
+        font: Rc<Font>,
         font_ref: FontRef,
         size: f64,
     ) -> Self {
@@ -69,7 +69,6 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
             font_ref.as_ref().to_owned(),
             Pt(size),
         ));
-        // builder.push(TextStreamElement::Font("F23".to_owned(), Pt(size)));
         Self { builder, font }
     }
 

@@ -4,7 +4,7 @@ use crate::{
     render::{Context, PdfObjRef, PdfObj},
     unit::Pt,
     util::{constants::PAGE_SIZE_A4, Area, Vector2},
-    Page, pdf_dict, font::{ExternalFont, FontRef},
+    Page, pdf_dict, font::{Font, FontRef},
 };
 
 #[derive(Default)]
@@ -12,7 +12,7 @@ pub struct Document {
     info: DocumentInfo,
     catalog: DocumentCatalog,
     font_counter: u16,
-    font_dict: HashMap<String, Rc<ExternalFont>>,
+    font_dict: HashMap<String, Rc<Font>>,
 }
 
 impl Document {
@@ -48,7 +48,7 @@ impl Document {
         self.info.subject = subject;
     }
 
-    pub fn add_font(&mut self, font: Rc<ExternalFont>) -> FontRef {
+    pub fn add_font(&mut self, font: Rc<Font>) -> FontRef {
         self.font_counter += 1;
         let name = format!("F{}", self.font_counter); 
         self.font_dict.insert(name.clone(), font);

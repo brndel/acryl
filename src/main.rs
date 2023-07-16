@@ -1,7 +1,7 @@
 use std::{fs::File, rc::Rc, time::Instant};
 
 use acryl_pdf::{
-    font::{ExternalFont, FontRef},
+    font::{Font, FontRef},
     stream::{Color, Streambuilder},
     unit::Pt,
     util::Area,
@@ -13,29 +13,31 @@ const FILE_PATH: &'static str = "out/test.pdf";
 fn main() {
     let start = Instant::now();
 
-    let file = File::create(FILE_PATH).unwrap();
+    let mut file = File::create(FILE_PATH).unwrap();
 
-    build_file(file);
+    build_file(&mut file);
+    let size = file.metadata().expect("could not open metadata of file").len();
+    let size_kb = size / 1000;
 
     let end = Instant::now();
 
     let dur = end.duration_since(start);
-    println!("Wrote file '{}' [{}ms]", FILE_PATH, dur.as_millis());
+    println!("Wrote file '{}' [{}ms, {}.{}mb]", FILE_PATH, dur.as_millis(), size_kb / 1000, size_kb % 1000);
 }
 
-fn build_file(mut file: File) {
+fn build_file(mut file: &mut File) {
     let mut doc = Document::new();
 
     let font_dejavu = Rc::new(
-        ExternalFont::load("/usr/share/fonts/TTF/DejaVuSerif.ttf")
+        Font::load("/usr/share/fonts/TTF/DejaVuSerif.ttf")
             .expect("font could not be loaded"),
     );
     let font_notosans = Rc::new(
-        ExternalFont::load("/usr/share/fonts/noto/NotoSans-Regular.ttf")
+        Font::load("/usr/share/fonts/noto/NotoSans-Regular.ttf")
             .expect("font could not be loaded"),
     );
     let font_freemono = Rc::new(
-        ExternalFont::load("/usr/share/fonts/gnu-free/FreeMono.otf")
+        Font::load("/usr/share/fonts/gnu-free/FreeMono.otf")
             .expect("font could not be loaded"),
     );
 
@@ -93,14 +95,14 @@ fn draw_marked_text<S: AsRef<str>>(
     text: S,
     position: Vector2<Pt>,
     builder: &mut Streambuilder,
-    font: Rc<ExternalFont>,
+    font: Rc<Font>,
     font_ref: FontRef,
     font_size: f64,
 ) {
     let width = font.measure_text(text.as_ref(), font_size);
-
+    
     let metrics = font.metrics().sized(font_size);
-    println!("[{}] asc: {} desc: {} height: {}", font.name(), metrics.ascender(), metrics.descender(), metrics.height());
+    dbg!(width, metrics.height());
 
     let rect_position = position.clone() - Vector2 { x: Pt(0.0), y: metrics.ascender() };
 

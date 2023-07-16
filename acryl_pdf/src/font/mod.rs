@@ -1,8 +1,9 @@
-mod external;
+mod font;
 mod glyph_info;
-mod face_metrics;
+mod font_metrics;
+mod cmap;
 
-pub use external::ExternalFont;
+pub use font::Font;
 
 #[derive(Clone)]
 pub struct FontRef(pub(crate) String);

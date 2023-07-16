@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io::{Write, self, Seek}, rc::Rc};
 
-use crate::{font::ExternalFont, pdf_dict};
+use crate::{font::Font, pdf_dict};
 
 use super::obj::PdfObj;
 
@@ -24,7 +24,7 @@ impl Into<PdfObj> for PdfObjRef {
 }
 
 impl Context {
-    pub fn new(fonts: HashMap<String, Rc<ExternalFont>>) -> Self {
+    pub fn new(fonts: HashMap<String, Rc<Font>>) -> Self {
         let mut this = Self::default();
         let mut font_object_fields = Vec::default();
 
