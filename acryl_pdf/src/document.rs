@@ -67,14 +67,12 @@ struct DocumentInfo {
 
 impl DocumentInfo {
     fn render(&self, context: &mut Context) -> PdfObjRef {
-        let obj = pdf_dict!(
+        pdf_dict!(
             "Title" => PdfObj::StringLiteral(self.title.clone().into()),
             "Author" => PdfObj::StringLiteral(self.author.clone().into()),
             "Subject" => PdfObj::StringLiteral(self.subject.clone().into()),
             "Creator" => PdfObj::StringLiteral("Acryl".into()),
-        );
-
-        context.add(obj)
+        ).add_to(context)
     }
 }
 
@@ -87,12 +85,10 @@ impl DocumentCatalog {
     fn render(self, context: &mut Context) -> PdfObjRef {
         let pages = self.pages.render(context);
 
-        let obj = pdf_dict!(
+        pdf_dict!(
             "Type" => PdfObj::Name("Catalog".into()),
             "Pages" => pages.into(),
-        );
-
-        context.add(obj)
+        ).add_to(context)
     }
 }
 

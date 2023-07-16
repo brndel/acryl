@@ -1,5 +1,7 @@
 use std::{borrow::Cow, io::Write};
 
+use super::{Context, PdfObjRef};
+
 pub enum PdfObj {
     Null,
     Bool(bool),
@@ -75,6 +77,10 @@ impl PdfObj {
             }
             PdfObj::Refernce(id, generation) => write!(f, "{} {} R", id, generation),
         }
+    }
+
+    pub fn add_to(self, context: &mut Context) -> PdfObjRef {
+        context.add(self)
     }
 }
 

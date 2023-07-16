@@ -125,12 +125,10 @@ impl Font {
 
         let file_data = self.face.as_slice().to_owned();
 
-        let font_file = PdfObj::Stream(file_data);
-        let font_file = context.add(font_file);
+        let font_file = PdfObj::Stream(file_data).add_to(context);
 
         let cmap = CMap::from(self);
-        let cid_to_unicode_map = cmap.to_unicode_map(&self.name);
-        let cid_to_unicode_map = context.add(PdfObj::Stream(cid_to_unicode_map));
+        let cid_to_unicode_map = PdfObj::Stream(cmap.to_unicode_map(&self.name)).add_to(context);
 
         let widths = self.create_width_vector();
 
@@ -145,8 +143,7 @@ impl Font {
             "ItalicAngle" => 0.into(),
             "FontFile2" => font_file.into(),
             "FontBBox" => bbox.into(),
-        );
-        let descriptor = context.add(descriptor);
+        ).add_to(context);
 
         let desc_font = pdf_dict!(
             "Type" => PdfObj::Name("Font".into()),
@@ -161,8 +158,7 @@ impl Font {
             "DW" => PdfObj::Int(1000),
             "FontDescriptor" => descriptor.into(),
             "CIDToGIDMap" => PdfObj::Name("Identity".into())
-        );
-        let desc_font = context.add(desc_font);
+        ).add_to(context);
 
         let font_dict = pdf_dict!(
             "Type" => PdfObj::Name("Font".into()),
