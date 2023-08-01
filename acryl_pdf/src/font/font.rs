@@ -78,14 +78,14 @@ impl Font {
         Pt(value.into() / (self.units_per_em as f64) * font_size.into())
     }
 
-    pub(super) fn get_glyph_info(&self, gid: u16) -> Option<GlyphInfo> {
-        let face = self.face.as_face_ref();
+    pub(super) fn get_glyph_info(&self, gid: u16) -> GlyphInfo {
+        let face = self.face();
         let glyph_id = GlyphId(gid);
 
-        let bbox = face.glyph_bounding_box(glyph_id)?;
+        let bbox = face.glyph_bounding_box(glyph_id).map_or((0, 0), |bbox| (bbox.width(), bbox.height()));
         let size = Vector2 {
-            x: bbox.width() as u16,
-            y: bbox.height() as u16,
+            x: bbox.0 as u16,
+            y: bbox.1 as u16,
         };
 
         let advance = Vector2 {
@@ -94,28 +94,39 @@ impl Font {
         };
 
         let gid = glyph_id.0;
-        Some(GlyphInfo {
+        GlyphInfo {
             font: &self,
             id: gid,
             advance,
             size,
-        })
+        }
+    }
+
+    pub(crate) fn get_char_id(&self, c: char) -> Option<u16> {
+        self.face().glyph_index(c).map(|id| id.0)
     }
 
     pub fn get_char_info(&self, c: char) -> Option<GlyphInfo> {
-        let id = self.face.as_face_ref().glyph_index(c)?;
-        self.used_gids.borrow_mut().insert(id.0, c);
-        self.get_glyph_info(id.0)
+        let id = self.face().glyph_index(c)?.0;
+        self.used_gids.borrow_mut().insert(id, c);
+        Some(self.get_glyph_info(id))
     }
 
     pub fn measure_text(&self, text: &str, font_size: f64) -> Pt {
-        let mut width = 0;
+        let mut width: u32 = 0;
 
         for c in text.chars() {
-            width += self.get_char_info(c).map_or(0, |i| i.advance.x);
+            width += self
+                .get_char_info(c)
+                .map_or(Self::default_glyph_width(), |i| i.advance.x) as u32;
         }
 
         self.unit_to_pt(width, font_size)
+    }
+
+    #[inline]
+    pub(crate) const fn default_glyph_width() -> u16 {
+        1000
     }
 }
 
@@ -128,22 +139,24 @@ impl Font {
         let font_file = PdfObj::Stream(file_data).add_to(context);
 
         let cmap = CMap::from(self);
-        let cid_to_unicode_map = PdfObj::Stream(cmap.to_unicode_map(&self.name)).add_to(context);
+        let cid_to_unicode_map = PdfObj::Stream(cmap.create_to_unicode_map(&self.name)).add_to(context);
 
-        let widths = self.create_width_vector();
+        let widths = cmap.create_width_vector();
 
-        let bbox = vec![0, cmap.max_height, cmap.total_width, cmap.max_height];
+        let bbox = cmap.create_bbox();
 
         let descriptor = pdf_dict!(
             "Type" => PdfObj::Name("FontDescriptor".into()),
             "FontName" => PdfObj::Name(self.name.clone().into()),
             "Ascent" => metrics.ascender.into(),
             "Descent" => metrics.descender.into(),
+            "Leading" => metrics.leading.into(),
             "CapHeight" => metrics.cap_height.into(),
             "ItalicAngle" => 0.into(),
             "FontFile2" => font_file.into(),
-            "FontBBox" => bbox.into(),
-        ).add_to(context);
+            "FontBBox" => bbox,
+        )
+        .add_to(context);
 
         let desc_font = pdf_dict!(
             "Type" => PdfObj::Name("Font".into()),
@@ -155,10 +168,11 @@ impl Font {
                 "Supplement" => PdfObj::Int(0),
             ),
             "W" => widths,
-            "DW" => PdfObj::Int(1000),
+            "DW" => Self::default_glyph_width().into(),
             "FontDescriptor" => descriptor.into(),
             "CIDToGIDMap" => PdfObj::Name("Identity".into())
-        ).add_to(context);
+        )
+        .add_to(context);
 
         let font_dict = pdf_dict!(
             "Type" => PdfObj::Name("Font".into()),
@@ -174,62 +188,5 @@ impl Font {
 
     pub(super) fn glyph_ids(&self) -> Ref<HashMap<u16, char>> {
         self.used_gids.borrow()
-    }
-
-    fn create_width_vector(&self) -> PdfObj {
-        let mut blocks: Vec<WidthBlock> = Vec::new();
-
-        let font_scaling = 1000.0 / (self.face.as_face_ref().units_per_em() as f64);
-
-        let binding = self.glyph_ids();
-        let mut ids: Vec<_> = binding.keys().into_iter().map(|id| *id).collect();
-        drop(binding);
-
-        ids.sort();
-
-        for gid in ids {
-            if let Some(GlyphInfo {
-                advance: Vector2 { x: width, .. },
-                ..
-            }) = self.get_glyph_info(gid)
-            {
-                let width = (width as f64 * font_scaling) as i16;
-                if let Some(block) = blocks.last_mut() {
-                    if gid == block.next() {
-                        block.widths.push(width);
-                        continue;
-                    }
-                }
-                blocks.push(WidthBlock {
-                    start_gid: gid,
-                    widths: vec![width],
-                });
-            }
-        }
-
-        blocks.into()
-    }
-}
-
-struct WidthBlock {
-    start_gid: u16,
-    widths: Vec<i16>,
-}
-
-impl Into<PdfObj> for Vec<WidthBlock> {
-    fn into(self) -> PdfObj {
-        let mut v = Vec::new();
-        for block in self {
-            v.push(block.start_gid.into());
-            v.push(block.widths.into());
-        }
-
-        PdfObj::Array(v)
-    }
-}
-
-impl WidthBlock {
-    fn next(&self) -> u16 {
-        self.start_gid + self.widths.len() as u16
     }
 }

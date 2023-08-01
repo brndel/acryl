@@ -29,6 +29,10 @@ impl<'a> Streambuilder<'a> {
         }
     }
 
+    pub fn get_area(&self) -> &Area<Pt> {
+        &self.page.area()
+    }
+
     pub fn render(self) {
         self.page.push(Stream::new(self.instructions))
     }
@@ -37,8 +41,8 @@ impl<'a> Streambuilder<'a> {
         self.instructions.push(instr.into())
     }
 
-    pub fn text<'b>(&'b mut self, font: Rc<Font>, font_ref: FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
-        TextStreambuilder::new(self, font, font_ref, size)
+    pub fn text<'b>(&'b mut self, font_ref: &FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
+        TextStreambuilder::new(self, font_ref, size)
     }
 
     pub fn draw_rect(&mut self, rect: Area<Pt>, color: Color) {
@@ -55,27 +59,29 @@ impl<'a> Streambuilder<'a> {
 pub struct TextStreambuilder<'a, 'b> {
     builder: &'a mut Streambuilder<'b>,
     font: Rc<Font>,
+    font_size: f64,
 }
 
 impl<'a, 'b> TextStreambuilder<'a, 'b> {
-    pub fn new(
-        builder: &'a mut Streambuilder<'b>,
-        font: Rc<Font>,
-        font_ref: FontRef,
-        size: f64,
-    ) -> Self {
+    pub fn new(builder: &'a mut Streambuilder<'b>, font_ref: &FontRef, font_size: f64) -> Self {
         builder.push(TextControl::Begin);
         builder.push(TextStreamElement::Font(
-            font_ref.as_ref().to_owned(),
-            Pt(size),
+            font_ref.name().to_owned(),
+            Pt(font_size),
         ));
-        Self { builder, font }
+        Self {
+            builder,
+            font: font_ref.1.clone(),
+            font_size,
+        }
     }
 
-    pub fn set_position(&mut self, position: Vector2<Pt>) {
-        self.builder.push(TextStreamElement::Position(
-            self.builder.page.transform(position),
-        ))
+    pub fn set_position(&mut self, mut position: Vector2<Pt>) {
+        position.y += self.font.metrics().ascender(self.font_size);
+
+        position = self.builder.page.transform(position);
+
+        self.builder.push(TextStreamElement::Position(position))
     }
 
     pub fn set_scale(&mut self, scale: u16) {
@@ -94,6 +100,10 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
         self.builder.push(TextStreamElement::WordSpace(spacing))
     }
 
+    /**
+     * The spacing between baselines of consecutive lines of text.
+     * Default value: 0
+     */
     pub fn set_leading(&mut self, leading: Pt) {
         self.builder.push(TextStreamElement::Leading(leading))
     }
@@ -102,22 +112,24 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
         self.builder.push(TextStreamElement::Rise(rise))
     }
 
+    pub fn next_line(&mut self) {
+        self.builder.push(TextStreamElement::NextLine)
+    }
+
     pub fn draw_text<T: Into<String>>(&mut self, text: T) {
-        let mut gid_list = Vec::new();
+        let mut bytes = Vec::new();
 
         for c in text.into().chars() {
-            if let Some(info) = self.font.as_ref().get_char_info(c) {
-                gid_list.push(info.id());
+            if let Some(gid) = self.font.as_ref().get_char_id(c) {
+                let gid_bytes = gid.to_be_bytes();
+
+                bytes.append(&mut gid_bytes.to_vec());
+            } else {
+                dbg!("Invalid char '{c}'");
             }
         }
 
-        let byte_list = gid_list
-            .into_iter()
-            .map(|gid| gid.to_be_bytes())
-            .collect::<Vec<[u8; 2]>>()
-            .concat();
-
-        self.builder.push(TextStreamElement::Text(byte_list))
+        self.builder.push(TextStreamElement::Text(bytes))
     }
 }
 

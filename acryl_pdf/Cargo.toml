@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 owned_ttf_parser = "0.19.0"
-compress = "0.2.1"

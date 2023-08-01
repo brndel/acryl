@@ -1,8 +1,21 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::{
+    cmp::min,
+    ops::{Add, AddAssign, Sub, SubAssign, Mul},
+};
 
 use crate::render::PdfObj;
 
-pub trait VectorComponent: Add<Output = Self> + AddAssign + Sub<Output = Self> + SubAssign + Into<PdfObj> + Default + Copy {}
+pub trait VectorComponent:
+    Add<Output = Self>
+    + AddAssign
+    + Sub<Output = Self>
+    + SubAssign
+    + Into<PdfObj>
+    + Default
+    + Copy
+    + PartialOrd
+{
+}
 pub trait Vector<T: VectorComponent>: Add + Sub + Into<PdfObj> {}
 
 impl VectorComponent for isize {}
@@ -24,6 +37,20 @@ impl VectorComponent for f64 {}
 pub struct Vector2<T: VectorComponent> {
     pub x: T,
     pub y: T,
+}
+
+impl<T: VectorComponent> Vector2<T> {
+    pub fn min(self, other: Self) -> Self {
+        let min_x = if self.x < other.x { self.x } else { other.x };
+        let min_y = if self.y < other.y { self.y } else { other.y };
+        Vector2 { x: min_x, y: min_y }
+    }
+
+    pub fn max(self, other: Self) -> Self {
+        let max_x = if self.x > other.x { self.x } else { other.x };
+        let max_y = if self.y > other.y { self.y } else { other.y };
+        Vector2 { x: max_x, y: max_y }
+    }
 }
 
 impl<T: VectorComponent> Into<PdfObj> for Vector2<T> {

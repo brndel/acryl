@@ -1,13 +1,13 @@
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Sub, SubAssign, Neg},
+    ops::{Add, AddAssign, Sub, SubAssign, Neg, MulAssign, Mul, Div, DivAssign},
 };
 
 use crate::{render::PdfObj, util::vec::VectorComponent};
 
 use super::Mm;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Pt(pub f64);
 
 impl Display for Pt {
@@ -65,6 +65,37 @@ impl Neg for Pt {
 
     fn neg(self) -> Self::Output {
         Self(-self.0)
+    }
+}
+
+impl Mul for Pt {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0)
+    }
+}
+
+
+impl MulAssign for Pt {
+    fn mul_assign(&mut self, rhs: Self) {
+        self.0 *= rhs.0
+    }
+}
+
+
+impl Div for Pt {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0 / rhs.0)
+    }
+}
+
+
+impl DivAssign for Pt {
+    fn div_assign(&mut self, rhs: Self) {
+        self.0 /= rhs.0
     }
 }
 

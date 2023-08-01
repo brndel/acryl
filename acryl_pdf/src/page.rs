@@ -15,6 +15,10 @@ impl Page {
         Self { area, content: Vec::default() }
     }
 
+    pub fn area(&self) -> &Area<Pt> {
+        &self.area
+    }
+
     pub fn render(self, context: &mut Context, parent: PdfObjRef) -> PdfObjRef {
         let mut content_refs = Vec::<PdfObjRef>::new();
 

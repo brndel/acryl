@@ -1,10 +1,16 @@
-use std::{collections::HashMap, rc::Rc, io::{Write, Seek, self}};
+use std::{
+    collections::HashMap,
+    io::{self, Seek, Write},
+    rc::Rc,
+};
 
 use crate::{
-    render::{Context, PdfObjRef, PdfObj},
+    font::{Font, FontRef},
+    pdf_dict,
+    render::{Context, PdfObj, PdfObjRef},
     unit::Pt,
     util::{constants::PAGE_SIZE_A4, Area, Vector2},
-    Page, pdf_dict, font::{Font, FontRef},
+    Page,
 };
 
 #[derive(Default)]
@@ -48,11 +54,12 @@ impl Document {
         self.info.subject = subject;
     }
 
-    pub fn add_font(&mut self, font: Rc<Font>) -> FontRef {
+    pub fn add_font(&mut self, font: Font) -> FontRef {
         self.font_counter += 1;
-        let name = format!("F{}", self.font_counter); 
-        self.font_dict.insert(name.clone(), font);
-        let font_ref = FontRef(name);
+        let name = format!("F{}", self.font_counter);
+        let font = Rc::new(font);
+        self.font_dict.insert(name.clone(), font.clone());
+        let font_ref = FontRef(name, font);
 
         font_ref
     }
@@ -72,7 +79,8 @@ impl DocumentInfo {
             "Author" => PdfObj::StringLiteral(self.author.clone().into()),
             "Subject" => PdfObj::StringLiteral(self.subject.clone().into()),
             "Creator" => PdfObj::StringLiteral("Acryl".into()),
-        ).add_to(context)
+        )
+        .add_to(context)
     }
 }
 
@@ -88,7 +96,8 @@ impl DocumentCatalog {
         pdf_dict!(
             "Type" => PdfObj::Name("Catalog".into()),
             "Pages" => pages.into(),
-        ).add_to(context)
+        )
+        .add_to(context)
     }
 }
 
@@ -101,7 +110,7 @@ impl Default for DocumentPages {
     fn default() -> Self {
         Self {
             default_page_size: Area::from_size(PAGE_SIZE_A4),
-            pages: Vec::default()
+            pages: Vec::default(),
         }
     }
 }
@@ -129,9 +138,10 @@ impl DocumentPages {
     }
 
     fn add_page(&mut self, size: Option<Vector2<Pt>>) -> &mut Page {
-        self.pages.push(Page::new(
-            size.map_or_else(|| self.default_page_size.clone(), |size| Area::from_size(size)),
-        ));
+        self.pages.push(Page::new(size.map_or_else(
+            || self.default_page_size.clone(),
+            |size| Area::from_size(size),
+        )));
 
         self.pages.last_mut().unwrap()
     }

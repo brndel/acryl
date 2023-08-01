@@ -1,70 +1,65 @@
 use std::collections::BTreeMap;
 
-use crate::Vector2;
+use crate::{render::PdfObj, Vector2};
 
-use super::{Font, glyph_info::GlyphInfo};
-
+use super::{glyph_info::GlyphInfo, Font};
 
 pub struct CMap {
     // id -> (codepoint, width, height)
-    map: BTreeMap<u32, (u32, u32, u32)>,
-    pub max_height: u32,
-    pub total_width: u32,
+    map: BTreeMap<u16, (char, u16, u16)>,
+    max_height: u16,
+    total_width: u32,
+    font_units_per_em: u16,
 }
 
 impl From<&Font> for CMap {
     fn from(value: &Font) -> Self {
-        let mut map: BTreeMap<u32, (u32, u32, u32)> = BTreeMap::new();
-        map.insert(0, (0, 1000, 1000));
+        let mut map: BTreeMap<u16, (char, u16, u16)> = BTreeMap::new();
 
-        let mut max_height: u32 = 0;
+        let mut max_height: u16 = 0;
         let mut total_width: u32 = 0;
 
         for (gid, ch) in &*value.glyph_ids() {
-            if let Some(GlyphInfo {
+            let GlyphInfo {
                 advance: Vector2 { x: width, .. },
                 size: Vector2 { y: height, .. },
                 ..
-            }) = value.get_glyph_info(*gid)
-            {
-                let height = height as u32;
-                let width = width as u32;
-                if height > max_height {
-                    max_height = height;
-                }
+            } = value.get_glyph_info(*gid);
 
-                total_width += width;
-                map.insert(*gid as u32, (*ch as u32, width, height));
+            if height > max_height {
+                max_height = height;
             }
+
+            total_width += width as u32;
+
+            map.insert(gid.to_owned(), (ch.to_owned(), width, height));
         }
 
         CMap {
             map,
             max_height,
             total_width,
+            font_units_per_em: value.face().units_per_em(),
         }
     }
 }
 
 impl CMap {
-    pub fn create_blocks(&self) -> Vec<Vec<(u32, u32)>> {
-        let mut widths = Vec::new();
-
-        let mut current_first_bit: u16 = 0;
+    fn create_blocks(&self) -> Vec<Vec<(u16, char)>> {
+        let mut current_first_byte: u8 = 0;
 
         let mut all_cmap_blocks = Vec::new();
 
         let mut current_cmap_block = Vec::new();
 
-        for (glyph_id, (unicode, width, _)) in &self.map {
-            if (*glyph_id >> 8) as u16 != current_first_bit || current_cmap_block.len() >= 100 {
+        for (glyph_id, (unicode, _, _)) in &self.map {
+            if (*glyph_id >> 8) as u8 != current_first_byte || current_cmap_block.len() >= 100 {
                 all_cmap_blocks.push(current_cmap_block);
                 current_cmap_block = Vec::new();
-                current_first_bit = (*glyph_id >> 8) as u16;
+                current_first_byte = (*glyph_id >> 8) as u8;
             }
 
             current_cmap_block.push((*glyph_id, *unicode));
-            widths.push((*glyph_id, *width));
         }
 
         all_cmap_blocks.push(current_cmap_block);
@@ -72,7 +67,7 @@ impl CMap {
         all_cmap_blocks
     }
 
-    pub fn to_unicode_map(&self, name: &str) -> Vec<u8> {
+    pub fn create_to_unicode_map(&self, name: &str) -> Vec<u8> {
         let mut map = format!(include_str!("../../assets/gid_to_unicode_beg.txt"), name);
 
         map.push_str("\r\n");
@@ -85,7 +80,10 @@ impl CMap {
         {
             map.push_str(&format!("{} beginbfchar\r\n", block.len()));
             for (glyph_id, unicode) in block {
-                map.push_str(&format!("<{:04x}> <{:04x}>\r\n", glyph_id, unicode));
+                map.push_str(&format!(
+                    "<{:04x}> <{:04x}>\r\n",
+                    glyph_id, unicode as u16
+                ));
             }
             map.push_str("endbfchar\r\n");
         }
@@ -95,5 +93,60 @@ impl CMap {
         map.push_str("\r\n");
 
         map.into_bytes()
+    }
+
+    pub fn create_bbox(&self) -> PdfObj {
+        vec![
+            0,
+            self.max_height as u32,
+            self.total_width as u32,
+            self.max_height as u32,
+        ]
+        .into()
+    }
+
+    pub fn create_width_vector(&self) -> PdfObj {
+        let mut blocks: Vec<WidthBlock> = Vec::new();
+
+        let font_scaling = 1000.0 / (self.font_units_per_em as f64);
+
+        for (gid, (_, width, _)) in &self.map {
+            let width = (*width as f64 * font_scaling) as i16;
+            if let Some(block) = blocks.last_mut() {
+                if *gid == block.next() {
+                    block.widths.push(width);
+                    continue;
+                }
+            }
+            blocks.push(WidthBlock {
+                start_gid: *gid,
+                widths: vec![width],
+            });
+        }
+
+        blocks.into()
+    }
+}
+
+struct WidthBlock {
+    start_gid: u16,
+    widths: Vec<i16>,
+}
+
+impl Into<PdfObj> for Vec<WidthBlock> {
+    fn into(self) -> PdfObj {
+        let mut v = Vec::new();
+        for block in self {
+            v.push(block.start_gid.into());
+            v.push(block.widths.into());
+        }
+
+        PdfObj::Array(v)
+    }
+}
+
+impl WidthBlock {
+    fn next(&self) -> u16 {
+        self.start_gid + self.widths.len() as u16
     }
 }

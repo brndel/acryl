@@ -7,7 +7,7 @@ use crate::{render::PdfObj, util::vec::VectorComponent};
 
 use super::Pt;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Mm(pub f64);
 
 impl Display for Mm {
