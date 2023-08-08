@@ -1,9 +1,7 @@
+use acryl_core::{unit::Pt, Vector2, Area};
 use acryl_pdf::{
     font::{Font, FontRef},
     stream::Streambuilder,
-    unit::Pt,
-    util::Area,
-    Vector2,
 };
 
 use super::LayoutElement;
@@ -99,18 +97,16 @@ impl LayoutElement for TextElement {
 }
 
 impl TextElement {
-    pub fn new(text: String, font: &FontRef, font_size: f64) -> Self {
-        let words = text
-            .split(' ')
-            .filter(|s| !s.is_empty())
-            .map(|text| Word::new(text, font.font(), font_size))
-            .collect();
-
+    pub fn new(font: &FontRef, font_size: f64) -> Self {
         Self {
-            words,
-            font: font.clone(),
+            words: Vec::new(),
+            font: font.to_owned(),
             font_size,
         }
+    }
+
+    pub fn add_word(&mut self, word: &str) {
+        self.words.push(Word::new(&word, self.font.font(), self.font_size));
     }
 
     fn layout_words(&self, max_width: Pt) -> Vec<Line> {

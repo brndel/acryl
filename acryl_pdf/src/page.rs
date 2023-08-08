@@ -1,8 +1,11 @@
+use acryl_core::{unit::Pt, Vector2, Area};
+
 use crate::{
+    pdf_dict,
     render::{Context, PdfObj, PdfObjRef},
-    unit::Pt,
-    util::{Area, CoordinateTransformer},
-    Vector2, stream::Stream, pdf_dict, resource::Resources,
+    resource::Resources,
+    stream::Stream,
+    util::CoordinateTransformer,
 };
 
 pub struct Page {
@@ -12,7 +15,10 @@ pub struct Page {
 
 impl Page {
     pub fn new(area: Area<Pt>) -> Self {
-        Self { area, content: Vec::default() }
+        Self {
+            area,
+            content: Vec::default(),
+        }
     }
 
     pub fn area(&self) -> &Area<Pt> {
@@ -25,7 +31,6 @@ impl Page {
         for element in self.content {
             content_refs.push(context.add(element));
         }
-
 
         let obj = pdf_dict!(
             "Type" => PdfObj::Name("Page".into()),
@@ -42,7 +47,6 @@ impl Page {
         if let Ok(content) = stream.render() {
             self.content.push(PdfObj::Stream(content))
         }
-
     }
 }
 

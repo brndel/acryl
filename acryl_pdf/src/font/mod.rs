@@ -20,3 +20,9 @@ impl FontRef {
         &self.1
     }
 }
+
+impl AsRef<Font> for FontRef {
+    fn as_ref(&self) -> &Font {
+        &self.1
+    }
+}

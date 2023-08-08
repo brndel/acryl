@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::{fs, io, path::Path};
 
+use acryl_core::Vector2;
+use acryl_core::unit::Pt;
 use owned_ttf_parser::name_id::POST_SCRIPT_NAME;
 // use owned_ttf_parser::name_id::FULL_NAME;
 use owned_ttf_parser::FaceParsingError;
@@ -10,8 +12,7 @@ use owned_ttf_parser::OwnedFace;
 use owned_ttf_parser::{AsFaceRef, Face, GlyphId};
 
 use crate::render::{Context, PdfObj, PdfObjRef};
-use crate::unit::Pt;
-use crate::{pdf_dict, Vector2};
+use crate::pdf_dict;
 
 use super::cmap::CMap;
 use super::font_metrics::FontMetrics;

@@ -1,4 +1,4 @@
-use crate::{unit::Pt, util::Matrix};
+use acryl_core::{unit::Pt, Matrix};
 
 use super::StreamInstruction;
 
@@ -30,9 +30,9 @@ pub enum LineJoin {
     Bevel,
 }
 
-impl Into<StreamInstruction> for GraphicsState {
-    fn into(self) -> StreamInstruction {
-        match self {
+impl From<GraphicsState> for StreamInstruction {
+    fn from(value: GraphicsState) -> Self {
+        match value {
             GraphicsState::SaveState => (vec![], "q"),
             GraphicsState::RestoreState => (vec![], "Q"),
             GraphicsState::TransformMatrix(matrix) => {

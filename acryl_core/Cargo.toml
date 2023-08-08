@@ -1,10 +1,8 @@
 [package]
-name = "acryl_pdf"
+name = "acryl_core"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-owned_ttf_parser = "0.19.0"
-acryl_core = { path = "../acryl_core" }

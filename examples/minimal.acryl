@@ -1,5 +1,8 @@
-document {
-    file: "minimal.pdf",
+doc {
+    author: "Armin",
+    pageSize: A4,
+    pageBuilder: Padded
 }
 
 Hello World
+Goodbye World

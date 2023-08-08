@@ -7,6 +7,5 @@ pub mod font;
 mod resource;
 
 pub use document::Document;
+pub use document::DocumentConfig;
 pub use page::Page;
-pub use util::unit;
-pub use util::Vector2;

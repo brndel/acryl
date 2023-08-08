@@ -1,4 +1,4 @@
-use crate::{unit::Pt, Vector2};
+use acryl_core::{Vector2, unit::Pt};
 
 use super::Font;
 

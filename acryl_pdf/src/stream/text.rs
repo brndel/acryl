@@ -1,4 +1,6 @@
-use crate::{render::PdfObj, unit::Pt, Vector2};
+use acryl_core::{Vector2, unit::Pt};
+
+use crate::render::PdfObj;
 
 use super::StreamInstruction;
 
@@ -34,18 +36,18 @@ pub enum RenderMode {
     Clip,
 }
 
-impl Into<StreamInstruction> for TextControl {
-    fn into(self) -> StreamInstruction {
-        match self {
+impl From<TextControl> for StreamInstruction {
+    fn from(value: TextControl) -> Self {
+        match value {
             TextControl::Begin => (vec![], "BT"),
             TextControl::End => (vec![], "ET"),
         }
     }
 }
 
-impl Into<StreamInstruction> for TextStreamElement {
-    fn into(self) -> StreamInstruction {
-        match self {
+impl From<TextStreamElement> for StreamInstruction {
+    fn from(value: TextStreamElement) -> Self {
+        match value {
             TextStreamElement::Position(v) => (vec![v.x.into(), v.y.into()], "Td"),
             TextStreamElement::NextLine => (vec![], "T*"),
             TextStreamElement::Font(name, size) => {

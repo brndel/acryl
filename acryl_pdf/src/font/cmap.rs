@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::{render::PdfObj, Vector2};
+use acryl_core::Vector2;
+
+use crate::render::PdfObj;
 
 use super::{glyph_info::GlyphInfo, Font};
 

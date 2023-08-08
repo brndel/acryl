@@ -1,8 +1,4 @@
-use acryl_pdf::{
-    unit::Pt,
-    util::{Area, VectorComponent},
-    Vector2,
-};
+use acryl_core::{unit::Pt, Vector2, Area};
 
 use crate::util::orientation::Orientation;
 

@@ -16,9 +16,9 @@ pub enum FillRule {
     EvenOdd
 }
 
-impl Into<StreamInstruction> for PathPainting {
-    fn into(self) -> StreamInstruction {
-        let operator = match self {
+impl From<PathPainting> for StreamInstruction {
+    fn from(value: PathPainting) -> Self {
+        let operator = match value {
             PathPainting::Stroke => "S",
             PathPainting::CloseStroke => "s",
             PathPainting::Fill(FillRule::NonzeroWinding) => "f",

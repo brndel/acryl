@@ -1,23 +1,9 @@
-use crate::render::PdfObj;
+use crate::vector::{Vector2, VectorComponent};
 
-use super::{transformer::CoordinateTransformer, vec::VectorComponent, Vector2};
-
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Area<T: VectorComponent> {
     pub position: Vector2<T>,
     pub size: Vector2<T>,
-}
-
-impl<T: VectorComponent> Into<PdfObj> for Area<T> {
-    fn into(self) -> PdfObj {
-        vec![
-            self.position.x,
-            self.position.y,
-            self.position.x + self.size.x,
-            self.position.y + self.size.y,
-        ]
-        .into()
-    }
 }
 
 impl<T: VectorComponent> Area<T> {
@@ -27,7 +13,6 @@ impl<T: VectorComponent> Area<T> {
             size,
         }
     }
-
     pub fn from_points(top_left: Vector2<T>, bottom_right: Vector2<T>) -> Area<T> {
         Self {
             position: top_left.clone(),
@@ -76,25 +61,5 @@ impl<T: VectorComponent> Area<T> {
 
     pub fn right(&self) -> T {
         self.position.x + self.size.x
-    }
-}
-
-impl<T: VectorComponent> CoordinateTransformer<Vector2<T>> for Area<T> {
-    fn transform(&self, value: Vector2<T>) -> Vector2<T> {
-        Vector2 {
-            x: value.x - self.left(),
-            y: self.bottom() - (value.y - self.top()),
-        }
-    }
-}
-
-impl<T: VectorComponent> CoordinateTransformer<Area<T>> for Area<T> {
-    fn transform(&self, value: Area<T>) -> Area<T> {
-        let mut position = self.transform(value.bottom_left());
-        position.y -= value.size.y;
-        Area {
-            position,
-            size: value.size,
-        }
     }
 }

@@ -4,16 +4,15 @@ use std::{
     rc::Rc,
 };
 
+use acryl_core::{Vector2, unit::Pt, Area};
+
 use crate::{
     font::{Font, FontRef},
     pdf_dict,
     render::{Context, PdfObj, PdfObjRef},
-    unit::Pt,
-    util::{constants::PAGE_SIZE_A4, Area, Vector2},
     Page,
 };
 
-#[derive(Default)]
 pub struct Document {
     info: DocumentInfo,
     catalog: DocumentCatalog,
@@ -21,9 +20,25 @@ pub struct Document {
     font_dict: HashMap<String, Rc<Font>>,
 }
 
+#[derive(Debug)]
+pub struct DocumentConfig {
+    pub author: Option<String>,
+    pub default_page_size: Vector2<Pt>,
+}
+
 impl Document {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(config: DocumentConfig) -> Self {
+        Self {
+            info: Default::default(),
+            catalog: DocumentCatalog {
+                pages: DocumentPages {
+                    default_page_size: config.default_page_size,
+                    pages: Default::default(),
+                },
+            },
+            font_counter: Default::default(),
+            font_dict: Default::default(),
+        }
     }
 
     pub fn render<F: Write + Seek>(self, f: &mut F) -> io::Result<()> {
@@ -84,7 +99,6 @@ impl DocumentInfo {
     }
 }
 
-#[derive(Default)]
 struct DocumentCatalog {
     pages: DocumentPages,
 }
@@ -102,17 +116,8 @@ impl DocumentCatalog {
 }
 
 struct DocumentPages {
-    default_page_size: Area<Pt>,
+    default_page_size: Vector2<Pt>,
     pages: Vec<Page>,
-}
-
-impl Default for DocumentPages {
-    fn default() -> Self {
-        Self {
-            default_page_size: Area::from_size(PAGE_SIZE_A4),
-            pages: Vec::default(),
-        }
-    }
 }
 
 impl DocumentPages {
@@ -138,10 +143,8 @@ impl DocumentPages {
     }
 
     fn add_page(&mut self, size: Option<Vector2<Pt>>) -> &mut Page {
-        self.pages.push(Page::new(size.map_or_else(
-            || self.default_page_size.clone(),
-            |size| Area::from_size(size),
-        )));
+        let page_size = size.unwrap_or_else(|| self.default_page_size.clone());
+        self.pages.push(Page::new(Area::from_size(page_size)));
 
         self.pages.last_mut().unwrap()
     }

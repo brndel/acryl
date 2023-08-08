@@ -1,34 +1,42 @@
 mod layout;
 mod util;
 
-use std::{fs::File, time::Instant};
-
-use acryl_pdf::{
-    font::{Font, FontRef},
-    stream::{Color, Streambuilder},
-    unit::Pt,
-    Document,
+use std::{
+    fs::{self, File},
+    str::FromStr,
+    time::Instant,
 };
 
-use layout::{
-    color_box::ColorBox,
-    linear_layout::{CrossAxisAlignment, LinearLayout, MainAxisAlignment},
-    padding::Padding,
-    size_box::SizeBox,
-    text::TextElement,
-    LayoutElement,
+use acryl_parser::{
+    ast::{CodeToken, ContentToken},
+    file::{DocFile, DocFileHeader},
+    parse, ParsedFile,
 };
+use acryl_pdf::{font::Font, stream::Streambuilder, Document, DocumentConfig};
 
-const LOREM_IPSUM_100: &'static str = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";
-const FILE_PATH: &'static str = "out/test.pdf";
+use layout::{linear_layout::LinearLayout, text::TextElement};
+use util::page_size::PageSize;
+
+use crate::layout::LayoutElement;
+
+const SAMPLE_FILE_PATH: &str = "examples/minimal.acryl";
+const OUT_FILE_PATH: &str = "out/minimal.pdf";
+
+const FONT_DEJAVU_SERIF: &str = "/usr/share/fonts/TTF/DejaVuSerif.ttf";
+const FONT_NOTO_SANS: &str = "/usr/share/fonts/noto/NotoSans-Regular.ttf";
+const FONT_FREE_MONO: &str = "/usr/share/fonts/gnu-free/FreeMono.otf";
 
 fn main() {
     let start = Instant::now();
 
-    let mut file = File::create(FILE_PATH).unwrap();
+    let source = fs::read_to_string(SAMPLE_FILE_PATH).expect("could not open sample acryl file");
 
-    build_file(&mut file);
-    
+    let doc = parse_sample(&source).unwrap();
+    let file = match build_pdf_from_doc(doc) {
+        Some(file) => file,
+        None => return,
+    };
+
     let size = file
         .metadata()
         .expect("could not open metadata of file")
@@ -38,61 +46,97 @@ fn main() {
     let end = Instant::now();
 
     let dur = end.duration_since(start);
+
     println!(
         "Wrote file '{}' [{}ms, {}.{}mb]",
-        FILE_PATH,
+        OUT_FILE_PATH,
         dur.as_millis(),
         size_kb / 1000,
         size_kb % 1000
     );
 }
 
-fn build_file(mut file: &mut File) {
-    let mut doc = Document::new();
+fn parse_sample(source: &str) -> Option<DocFile> {
+    let result = parse(&source);
 
-    let font_dejavu =
-        Font::load("/usr/share/fonts/TTF/DejaVuSerif.ttf").expect("font could not be loaded");
-    // let font_notosans =
-    //     Font::load("/usr/share/fonts/noto/NotoSans-Regular.ttf").expect("font could not be loaded");
-    // let font_freemono =
-    //     Font::load("/usr/share/fonts/gnu-free/FreeMono.otf").expect("font could not be loaded");
+    if let Some(ParsedFile::Doc(doc)) = result {
+        Some(doc)
+    } else {
+        println!("{:#?}", result);
+        println!("invalid result type");
+        None
+    }
+}
 
-    let default_font = doc.add_font(font_dejavu);
+fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
+    let config = match parse_document_config(doc.header()) {
+        Ok(config) => config,
+        Err(err) => {
+            println!("{}", err);
+            return None;
+        }
+    };
 
-    let page = doc.add_page(None);
+    println!("{:?}", config);
 
+    let mut document = Document::new(config);
+    let default_font =
+        document.add_font(Font::load(FONT_DEJAVU_SERIF).expect("Font file not found"));
+
+    let mut layout = LinearLayout::vertical();
+
+    let mut text = TextElement::new(&default_font, 12.0);
+
+    for token in doc.content().tokens() {
+        match token {
+            ContentToken::Word(word) => text.add_word(word),
+            ContentToken::Fn {
+                name,
+                key,
+                arguments,
+                content,
+            } => todo!(),
+        }
+    }
+    layout.add(text);
+
+    let mut out_file = File::create(OUT_FILE_PATH).expect("could not create out file");
+    let page = document.add_page(None);
     let mut builder = Streambuilder::new(page);
 
-    draw_layout(&mut builder, &default_font);
+    layout.render(builder.get_area().clone(), &mut builder);
 
     builder.render();
 
-    doc.render(&mut file).unwrap()
+    document
+        .render(&mut out_file)
+        .expect("error while writing document");
+
+    Some(out_file)
 }
 
-fn draw_layout(builder: &mut Streambuilder, font: &FontRef) {
-    let mut layout = LinearLayout::vertical()
-        .main_axis(MainAxisAlignment::Start)
-        .cross_axis(CrossAxisAlignment::Start)
-        .spacing(Pt(8.0));
+fn parse_document_config(header: &DocFileHeader) -> Result<DocumentConfig, &'static str> {
+    let author = match header.get("author") {
+        Some(token) => Some(
+            token
+                .as_str()
+                .ok_or("author needs to be of type str")?
+                .to_owned(),
+        ),
+        None => None,
+    };
 
-    let text_element = TextElement::new("Hello Layout World!".into(), font, 24.0);
-    layout.add(ColorBox::new(text_element, Color::rgb_from_hex(0xFD004C)));
+    let page_size = match header.get("pageSize") {
+        Some(size) => size
+            .as_ident()
+            .ok_or("'pageSize' needs to be of type ident")?
+            .parse()
+            .map_err(|_| "Unknow Page Size")?,
+        None => PageSize::default(),
+    };
 
-    let text_element = TextElement::new(LOREM_IPSUM_100.into(), font, 12.0);
-    layout.add(ColorBox::new(text_element, Color::rgb_from_hex(0xE800FD)));
-
-    layout.add(ColorBox::new(
-        SizeBox::new(80.0, 80.0),
-        Color::rgb_from_hex(0x25AC37),
-    ));
-
-    layout.add(ColorBox::new(
-        SizeBox::new(70.0, 150.0),
-        Color::rgb_from_hex(0x1446EE),
-    ));
-
-    let layout = Padding::new(layout, Pt(8.0));
-
-    layout.render(builder.get_area().clone(), builder);
+    Ok(DocumentConfig {
+        author,
+        default_page_size: page_size.get_size(),
+    })
 }

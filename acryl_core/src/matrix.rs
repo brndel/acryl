@@ -1,5 +1,4 @@
-use super::vec::VectorComponent;
-
+use crate::VectorComponent;
 
 
 pub struct Matrix<T: VectorComponent, const Y: usize, const X: usize> {

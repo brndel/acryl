@@ -1,38 +1,33 @@
-use std::{
-    fmt::Display,
-    ops::{Add, AddAssign, Sub, SubAssign, Neg, MulAssign, Mul, Div, DivAssign},
-};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign, Div, DivAssign};
 
-use crate::{render::PdfObj, util::vec::VectorComponent};
+use crate::vector::VectorComponent;
 
-use super::Mm;
 
+type UnitValue = f64;
+
+macro_rules! unit {
+    ($name:ident, $($factor:expr => $converted:ty),* $(,)?) => {
+        
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
-pub struct Pt(pub f64);
+pub struct $name(pub UnitValue);
 
-impl Display for Pt {
+impl std::fmt::Display for $name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl Into<Pt> for f64 {
-    fn into(self) -> Pt {
-        Pt(self)
+impl From<f64> for $name {
+    fn from(value: UnitValue) -> Self {
+        Self(value)
     }
 }
 
-// Vector Component
+impl VectorComponent for $name {}
 
-impl VectorComponent for Pt {}
+// Math operations
 
-impl Into<PdfObj> for Pt {
-    fn into(self) -> PdfObj {
-        PdfObj::Float(self.0)
-    }
-}
-
-impl Add for Pt {
+impl Add for $name {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -40,13 +35,13 @@ impl Add for Pt {
     }
 }
 
-impl AddAssign for Pt {
+impl AddAssign for $name {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0
     }
 }
 
-impl Sub for Pt {
+impl Sub for $name {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -54,13 +49,13 @@ impl Sub for Pt {
     }
 }
 
-impl SubAssign for Pt {
+impl SubAssign for $name {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0
     }
 }
 
-impl Neg for Pt {
+impl Neg for $name {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
@@ -68,7 +63,7 @@ impl Neg for Pt {
     }
 }
 
-impl Mul for Pt {
+impl Mul for $name {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -76,15 +71,13 @@ impl Mul for Pt {
     }
 }
 
-
-impl MulAssign for Pt {
+impl MulAssign for $name {
     fn mul_assign(&mut self, rhs: Self) {
         self.0 *= rhs.0
     }
 }
 
-
-impl Div for Pt {
+impl Div for $name {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
@@ -92,17 +85,36 @@ impl Div for Pt {
     }
 }
 
-
-impl DivAssign for Pt {
+impl DivAssign for $name {
     fn div_assign(&mut self, rhs: Self) {
         self.0 /= rhs.0
     }
 }
 
-// Unit converters
+$(
 
-impl Into<Mm> for Pt {
-    fn into(self) -> Mm {
-        Mm(self.0 * 0.3527777778)
+impl From<$name> for $converted {
+    fn from(value: $name) -> Self {
+        Self(value.0 * $factor)
     }
 }
+
+)*
+
+    };
+}
+
+unit!(Pt,
+    0.3527777778 => Mm,
+    0.0352777778 => Cm,
+);
+
+unit!(Mm,
+    2.8346456693 => Pt,
+    0.1000000000 => Cm,
+);
+
+unit!(Cm,
+    10.000000000 => Mm,
+    28.346456693 => Pt,
+);

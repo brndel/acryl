@@ -1,4 +1,4 @@
-use acryl_pdf::{stream::Color, unit::Pt, util::Area, Vector2};
+use acryl_core::{Vector2, unit::Pt, Area, Color};
 
 use super::{LayoutBox, LayoutElement};
 

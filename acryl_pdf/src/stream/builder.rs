@@ -1,14 +1,15 @@
 use std::rc::Rc;
 
+use acryl_core::{Area, unit::Pt, Vector2, Color};
+
 use crate::{
     font::{Font, FontRef},
-    unit::Pt,
-    util::{Area, CoordinateTransformer},
-    Page, Vector2,
+    util::CoordinateTransformer,
+    Page,
 };
 
 use super::{
-    color::{Color, ColorOperation},
+    color::ColorOperation,
     graphics_state::GraphicsState,
     path_construction::PathConstruction,
     path_painting::PathPainting,

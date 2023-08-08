@@ -1,5 +1,4 @@
-use acryl_pdf::{util::VectorComponent, Vector2};
-
+use acryl_core::{VectorComponent, Vector2};
 
 pub enum Orientation {
     Vertical,

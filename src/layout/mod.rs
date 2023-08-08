@@ -1,4 +1,5 @@
-use acryl_pdf::{Vector2, unit::Pt, stream::Streambuilder, util::Area};
+use acryl_core::{Vector2, unit::Pt, Area};
+use acryl_pdf::stream::Streambuilder;
 
 pub mod linear_layout;
 pub mod color_box;

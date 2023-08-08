@@ -1,72 +1,43 @@
-use super::StreamInstruction;
+use acryl_core::Color;
 
-#[derive(Clone)]
-pub enum Color {
-    Gray(u8),
-    RGB(u8, u8, u8),
-    CMYK(u8, u8, u8, u8),
-}
+use crate::render::PdfObj;
+
+use super::StreamInstruction;
 
 pub enum ColorOperation {
     StrokeColor(Color),
     FillColor(Color),
 }
 
-impl Into<StreamInstruction> for ColorOperation {
-    fn into(self) -> StreamInstruction {
-        match self {
-            ColorOperation::StrokeColor(Color::Gray(value)) => {
-                (vec![(value as f64 / 255.0).into()], "G")
-            }
-            ColorOperation::FillColor(Color::Gray(value)) => {
-                (vec![(value as f64 / 255.0).into()], "g")
-            }
+impl From<ColorOperation> for StreamInstruction {
+    fn from(value: ColorOperation) -> Self {
+        match value {
+            ColorOperation::StrokeColor(color @ Color::Gray(..)) => (to_vec(color), "G"),
+            ColorOperation::FillColor(color @ Color::Gray(..)) => (to_vec(color), "g"),
 
-            ColorOperation::StrokeColor(Color::RGB(r, g, b)) => (
-                vec![
-                    (r as f64 / 255.0).into(),
-                    (g as f64 / 255.0).into(),
-                    (b as f64 / 255.0).into(),
-                ],
-                "RG",
-            ),
-            ColorOperation::FillColor(Color::RGB(r, g, b)) => (
-                vec![
-                    (r as f64 / 255.0).into(),
-                    (g as f64 / 255.0).into(),
-                    (b as f64 / 255.0).into(),
-                ],
-                "rg",
-            ),
+            ColorOperation::StrokeColor(color @ Color::RGB(..)) => (to_vec(color), "RG"),
+            ColorOperation::FillColor(color @ Color::RGB(..)) => (to_vec(color), "rg"),
 
-            ColorOperation::StrokeColor(Color::CMYK(c, m, y, k)) => (
-                vec![
-                    (c as f64 / 255.0).into(),
-                    (m as f64 / 255.0).into(),
-                    (y as f64 / 255.0).into(),
-                    (k as f64 / 255.0).into(),
-                ],
-                "K",
-            ),
-            ColorOperation::FillColor(Color::CMYK(c, m, y, k)) => (
-                vec![
-                    (c as f64 / 255.0).into(),
-                    (m as f64 / 255.0).into(),
-                    (y as f64 / 255.0).into(),
-                    (k as f64 / 255.0).into(),
-                ],
-                "k",
-            ),
+            ColorOperation::StrokeColor(color @ Color::CMYK(..)) => (to_vec(color), "K"),
+            ColorOperation::FillColor(color @ Color::CMYK(..)) => (to_vec(color), "k"),
         }
     }
 }
 
-impl Color {
-    pub fn rgb_from_hex(value: u64) -> Self {
-        let b = ((value & 0x000000ff) >> 0) as u8;
-        let g = ((value & 0x0000ff00) >> 8) as u8;
-        let r = ((value & 0x00ff0000) >> 16) as u8;
+fn to_vec(value: Color) -> Vec<PdfObj> {
+    macro_rules! into {
+            ($($name:ident)*) => {
+                vec![
+                    $(
+                        ($name as f64 / 255.0).into(),
+                    )*
+                ]
+            };
+        }
 
-        Color::RGB(r, g, b)
+    match value {
+        Color::Gray(value) => into!(value),
+        Color::RGB(r, g, b) => into!(r g b),
+        Color::CMYK(c, m, y, k) => into!(c m y k),
     }
 }

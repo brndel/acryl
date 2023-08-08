@@ -1,5 +1,7 @@
 use std::{borrow::Cow, io::Write};
 
+use acryl_core::{unit::Pt, Vector2, VectorComponent, Area};
+
 use super::{Context, PdfObjRef};
 
 pub enum PdfObj {
@@ -84,89 +86,63 @@ impl PdfObj {
     }
 }
 
-impl Into<PdfObj> for isize {
-    fn into(self) -> PdfObj {
-        PdfObj::Int(self as i64)
+macro_rules! impl_from_with_cast {
+    ($($value:ident $cast_type:ty [ $($from_type:ty)* ] )*) => {
+        $(
+            $(
+                impl From<$from_type> for PdfObj {
+                    fn from(value: $from_type) -> Self {
+                        Self::$value(value as $cast_type)
+                    }
+                }
+            )*
+        )*
+    };
+}
+
+impl_from_with_cast!(
+    Int i64 [isize i8 i16 i32 i64]
+    UInt u64 [usize u8 u16 u32 u64]
+    Float f64 [f32 f64]
+);
+
+impl<T: Into<PdfObj>> From<Vec<T>> for PdfObj {
+    fn from(value: Vec<T>) -> Self {
+        Self::Array(value.into_iter().map(|e| e.into()).collect())
     }
 }
 
-impl Into<PdfObj> for i8 {
-    fn into(self) -> PdfObj {
-        PdfObj::Int(self as i64)
-    }
-}
-
-impl Into<PdfObj> for i16 {
-    fn into(self) -> PdfObj {
-        PdfObj::Int(self as i64)
-    }
-}
-
-impl Into<PdfObj> for i32 {
-    fn into(self) -> PdfObj {
-        PdfObj::Int(self as i64)
-    }
-}
-
-impl Into<PdfObj> for i64 {
-    fn into(self) -> PdfObj {
-        PdfObj::Int(self as i64)
-    }
-}
-
-impl Into<PdfObj> for usize {
-    fn into(self) -> PdfObj {
-        PdfObj::UInt(self as u64)
-    }
-}
-
-impl Into<PdfObj> for u8 {
-    fn into(self) -> PdfObj {
-        PdfObj::UInt(self as u64)
-    }
-}
-
-impl Into<PdfObj> for u16 {
-    fn into(self) -> PdfObj {
-        PdfObj::UInt(self as u64)
-    }
-}
-
-impl Into<PdfObj> for u32 {
-    fn into(self) -> PdfObj {
-        PdfObj::UInt(self as u64)
-    }
-}
-
-impl Into<PdfObj> for u64 {
-    fn into(self) -> PdfObj {
-        PdfObj::UInt(self as u64)
-    }
-}
-
-impl Into<PdfObj> for f32 {
-    fn into(self) -> PdfObj {
-        PdfObj::Float(self as f64)
-    }
-}
-
-impl Into<PdfObj> for f64 {
-    fn into(self) -> PdfObj {
-        PdfObj::Float(self)
-    }
-}
-
-impl<T: Into<PdfObj>> Into<PdfObj> for Vec<T> {
-    fn into(self) -> PdfObj {
-        PdfObj::Array(self.into_iter().map(|e| e.into()).collect())
-    }
-}
-
-impl<T: Into<PdfObj>> Into<PdfObj> for Option<T> {
-    fn into(self) -> PdfObj {
-        match self {
+impl<T: Into<PdfObj>> From<Option<T>> for PdfObj {
+    fn from(value: Option<T>) -> Self {
+        match value {
             Some(obj) => obj.into(),
             None => PdfObj::Null,
         }
+    }
+}
+
+impl From<Pt> for PdfObj {
+    fn from(value: Pt) -> Self {
+        Self::Float(value.0)
+    }
+}
+
+impl<T: Into<PdfObj> + VectorComponent> From<Vector2<T>> for PdfObj {
+    fn from(value: Vector2<T>) -> Self {
+        PdfObj::Array(vec![
+            value.x.into(),
+            value.y.into(),
+        ])
+    }
+}
+
+impl<T: Into<PdfObj> + VectorComponent> From<Area<T>> for PdfObj {
+    fn from(value: Area<T>) -> Self {
+        vec![
+            value.position.x,
+            value.position.y,
+            value.position.x + value.size.x,
+            value.position.x + value.size.y,
+        ].into()
     }
 }

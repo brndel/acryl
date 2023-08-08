@@ -1,4 +1,5 @@
-use acryl_pdf::{stream::Streambuilder, unit::Pt, util::Area, Vector2};
+use acryl_core::{Vector2, unit::Pt, Area};
+use acryl_pdf::stream::Streambuilder;
 
 use super::LayoutElement;
 

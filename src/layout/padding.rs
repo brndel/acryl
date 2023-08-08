@@ -1,4 +1,5 @@
-use acryl_pdf::{unit::Pt, util::Area, Vector2};
+use acryl_core::{Vector2, unit::Pt, Area};
+use acryl_pdf::stream::Streambuilder;
 
 use super::{LayoutBox, LayoutElement};
 
@@ -8,14 +9,14 @@ pub struct Padding {
 }
 
 impl LayoutElement for Padding {
-    fn get_min_size(&self, max_size: Vector2<Pt>) -> acryl_pdf::Vector2<Pt> {
+    fn get_min_size(&self, max_size: Vector2<Pt>) -> Vector2<Pt> {
         self.element.get_min_size(max_size) + Vector2::from(self.padding * Pt(2.0))
     }
 
     fn render(
         &self,
-        area: acryl_pdf::util::Area<Pt>,
-        builder: &mut acryl_pdf::stream::Streambuilder,
+        area: Area<Pt>,
+        builder: &mut Streambuilder,
     ) {
         let area = Area {
             position: area.position + Vector2::from(self.padding),

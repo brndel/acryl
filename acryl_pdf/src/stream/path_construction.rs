@@ -1,4 +1,4 @@
-use crate::{unit::Pt, util::Area, Vector2};
+use acryl_core::{unit::Pt, Area, Vector2};
 
 use super::StreamInstruction;
 
@@ -22,30 +22,24 @@ pub enum PathConstruction {
     Rect(Area<Pt>),
 }
 
-impl Into<StreamInstruction> for PathConstruction {
-    fn into(self) -> StreamInstruction {
-        match self {
-            PathConstruction::Move(pos) => (vec![pos.x.into(), pos.y.into()], "m"),
-            PathConstruction::LineTo(pos) => (vec![pos.x.into(), pos.y.into()], "l"),
-            PathConstruction::CubicBezier { p1, p2, p3 } => (
+impl From<PathConstruction> for StreamInstruction {
+    fn from(value: PathConstruction) -> Self {
+        macro_rules! into {
+            ($($name:ident)*) => {
                 vec![
-                    p1.x.into(),
-                    p2.y.into(),
-                    p2.x.into(),
-                    p2.y.into(),
-                    p3.x.into(),
-                    p3.y.into(),
-                ],
-                "c",
-            ),
-            PathConstruction::CubicBezierAutoStart { p2, p3 } => (
-                vec![p2.x.into(), p2.y.into(), p3.x.into(), p3.y.into()],
-                "v",
-            ),
-            PathConstruction::CubicBezierAutoEnd { p1, p2 } => (
-                vec![p1.x.into(), p1.y.into(), p2.x.into(), p2.y.into()],
-                "y",
-            ),
+                    $(
+                        $name.x.into(),
+                        $name.y.into(),
+                    )*
+                ]
+            };
+        }
+        match value {
+            PathConstruction::Move(pos) => (into!(pos), "m"),
+            PathConstruction::LineTo(pos) => (into!(pos), "l"),
+            PathConstruction::CubicBezier { p1, p2, p3 } => (into!(p1 p2 p3), "c"),
+            PathConstruction::CubicBezierAutoStart { p2, p3 } => (into!(p2 p3), "v"),
+            PathConstruction::CubicBezierAutoEnd { p1, p2 } => (into!(p1 p2), "y"),
             PathConstruction::Close => (vec![], "h"),
             PathConstruction::Rect(area) => {
                 let pos = area.bottom_left();
