@@ -1,13 +1,28 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign, Div, DivAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use crate::vector::VectorComponent;
 
+pub(crate) type UnitValue = f64;
 
-type UnitValue = f64;
+pub trait Unit:
+    Copy
+    + Clone
+    + From<f64>
+    + Into<f64>
+    + Add<Output = Self>
+    + AddAssign
+    + Sub<Output = Self>
+    + SubAssign
+    + Mul<Output = Self>
+    + MulAssign
+    + Div<Output = Self>
+    + DivAssign
+{
+}
 
 macro_rules! unit {
     ($name:ident, $($factor:expr => $converted:ty),* $(,)?) => {
-        
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct $name(pub UnitValue);
 
@@ -23,7 +38,14 @@ impl From<f64> for $name {
     }
 }
 
+impl From<$name> for f64 {
+    fn from(value: $name) -> Self {
+        value.0
+    }
+}
+
 impl VectorComponent for $name {}
+impl Unit for $name {}
 
 // Math operations
 
@@ -68,6 +90,14 @@ impl Mul for $name {
 
     fn mul(self, rhs: Self) -> Self::Output {
         Self(self.0 * rhs.0)
+    }
+}
+
+impl Mul<UnitValue> for $name {
+    type Output = Self;
+
+    fn mul(self, rhs: UnitValue) -> Self::Output {
+        Self(self.0 * rhs)
     }
 }
 

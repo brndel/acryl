@@ -87,6 +87,14 @@ impl<T: VectorComponent> $name<T> {
             )*
         }
     }
+
+    pub fn scale<M: Copy>(self, value: M) -> Self where T: Mul<M, Output=T> {
+        Self {
+            $(
+                $val: self.$val * value,
+            )*
+        }
+    }
 }
 
 op_impl!($name, (+ Add add), (+= AddAssign add_assign), $($val,)*);
