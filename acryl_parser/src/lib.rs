@@ -4,14 +4,9 @@ mod content;
 pub mod file;
 mod lexer;
 
-use std::{
-    collections::BTreeMap,
-    fmt::{Debug, Display},
-};
+use std::fmt::{Debug, Display};
 
-use ast::{CodeToken, ContentToken};
 use chumsky::{
-    extra,
     input::SpannedInput,
     prelude::{Input, Rich},
     primitive::{end, just},

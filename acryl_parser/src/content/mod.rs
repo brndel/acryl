@@ -1,8 +1,11 @@
-use std::os::linux::raw;
+use chumsky::{primitive::just, recursive::recursive, select, IterParser, Parser};
 
-use chumsky::{Parser, recursive::recursive, select, primitive::just, IterParser};
-
-use crate::{lexer::Token, ast::{ContentToken, CodeToken, Argument}, parser, code::code_token_parser};
+use crate::{
+    ast::{Argument, ContentToken},
+    code::code_token_parser,
+    lexer::Token,
+    parser,
+};
 
 fn raw_ident<'src: 'tokens, 'tokens>() -> parser!('tokens, Token<'src>, &'src str) {
     select! {
@@ -19,13 +22,16 @@ fn raw_token<'src: 'tokens, 'tokens>() -> parser!('tokens, Token<'src>, &'src st
     }
 }
 
-pub fn content_parser<'src: 'tokens, 'tokens>() -> parser!('tokens, Token<'src>, Vec<ContentToken<'src>>) {
+pub fn content_parser<'src: 'tokens, 'tokens>(
+) -> parser!('tokens, Token<'src>, Vec<ContentToken<'src>>) {
     recursive(|token| {
         let word = raw_token().map(ContentToken::Word);
 
         let raw_ident = raw_ident();
 
-        let key = just(Token::Ctrl('[')).ignore_then(raw_token()).then_ignore(just(Token::Ctrl(']')));
+        let key = just(Token::Ctrl('['))
+            .ignore_then(raw_token())
+            .then_ignore(just(Token::Ctrl(']')));
 
         let argument = raw_ident
             .clone()
@@ -47,8 +53,7 @@ pub fn content_parser<'src: 'tokens, 'tokens>() -> parser!('tokens, Token<'src>,
 
         let fn_content = token.delimited_by(just(Token::Ctrl('{')), just(Token::Ctrl('}')));
 
-        let r#fn =
-        just(Token::Escape)
+        let r#fn = just(Token::Escape)
             .ignore_then(raw_ident)
             .then(key.or_not())
             // raw_ident
@@ -60,7 +65,6 @@ pub fn content_parser<'src: 'tokens, 'tokens>() -> parser!('tokens, Token<'src>,
                 arguments: arguments.unwrap_or_default(),
                 content: content.unwrap_or_default(),
             });
-            
 
         word.or(r#fn).repeated().collect()
     })
