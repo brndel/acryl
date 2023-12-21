@@ -1,4 +1,4 @@
-use acryl_core::{unit::Pt, Vector2, Area};
+use acryl_core::{unit::Pt, Area, CrossAxisAlignment, MainAxisAlignment, Vector2};
 
 use crate::util::orientation::Orientation;
 
@@ -13,67 +13,22 @@ pub struct LinearLayout {
     spacing: Pt,
 }
 
-pub enum MainAxisAlignment {
-    Start,
-    Center,
-    End,
-    SpaceBetween,
-}
-
-impl Default for MainAxisAlignment {
-    fn default() -> Self {
-        Self::Start
-    }
-}
-
-pub enum CrossAxisAlignment {
-    Start,
-    Center,
-    End,
-    Stretch,
-}
-
-impl Default for CrossAxisAlignment {
-    fn default() -> Self {
-        Self::Start
-    }
-}
-
-
 impl LayoutElement for LinearLayout {
     fn get_min_size(&self, max_size: Vector2<Pt>) -> Vector2<Pt> {
-        let mut main_size = Default::default();
-        let mut cross_size = Default::default();
+        let result = self.get_min_size_of_elements(max_size);
 
-        for element in &self.elements {
-            let element_min_size = element.get_min_size(max_size.clone());
-            if self.orientation.get_cross(&element_min_size) > cross_size {
-                cross_size = self.orientation.get_cross(&element_min_size);
-            }
-
-            main_size += self.orientation.get_main(&element_min_size);
-        }
-
-        main_size += self.spacing * Pt((self.elements.len() - 1) as f64);
-
-        self.orientation.create_vector(main_size, cross_size)
+        self.orientation.create_vector(result.main_size, result.cross_size)
     }
 
     fn render(&self, area: Area<Pt>, builder: &mut acryl_pdf::stream::Streambuilder) {
-        let min_size = self.get_min_size(area.size.clone());
-        let remaining_main_space = self.orientation.get_main(&area.size) - self.orientation.get_main(&min_size);
+        let result = self.get_min_size_of_elements(area.size.clone());
 
-        let mut main_pos = match &self.main_axis {
-            MainAxisAlignment::Start => Pt(0.0),
-            MainAxisAlignment::Center => remaining_main_space / Pt(2.0),
-            MainAxisAlignment::End => remaining_main_space,
-            MainAxisAlignment::SpaceBetween => Pt(0.0),
-        };
+        let positions = self.main_axis.get_positions(self.orientation.get_main(&area.size), &result.element_sizes);
 
-        for element in &self.elements {
+        for (element, main_pos) in self.elements.iter().zip(positions) {
             let min_size = element.get_min_size(area.size.clone());
-            let remaining_cross_space = self.orientation.get_cross(&area.size)
-                - self.orientation.get_cross(&min_size);
+            let remaining_cross_space =
+                self.orientation.get_cross(&area.size) - self.orientation.get_cross(&min_size);
 
             let cross_pos = match &self.cross_axis {
                 CrossAxisAlignment::Center => remaining_cross_space / Pt(2.0),
@@ -97,10 +52,6 @@ impl LayoutElement for LinearLayout {
                 builder,
             );
 
-            main_pos += main_size + self.spacing;
-            if let MainAxisAlignment::SpaceBetween = self.main_axis {
-                main_pos += remaining_main_space / Pt((self.elements.len() - 1) as f64);
-            }
         }
     }
 }
@@ -138,4 +89,32 @@ impl LinearLayout {
     pub fn add<T: LayoutElement + 'static>(&mut self, element: T) {
         self.elements.push(Box::new(element));
     }
+
+    fn get_min_size_of_elements(&self, max_size: Vector2<Pt>) -> MinSizeResult {
+        let mut main_size = Pt(0.0);
+        let mut cross_size = Pt(0.0);
+        let mut element_sizes = Vec::new();
+        for elem in &self.elements {
+            let size = elem.get_min_size(max_size.clone());
+            let main = self.orientation.get_main(&size);
+            let cross = self.orientation.get_cross(&size);
+
+            main_size += main;
+            if cross > cross_size {
+                cross_size = cross;
+            }
+            element_sizes.push(main);
+        }
+        MinSizeResult {
+            main_size,
+            cross_size,
+            element_sizes,
+        }
+    }
+}
+
+struct MinSizeResult {
+    main_size: Pt,
+    cross_size: Pt,
+    element_sizes: Vec<Pt>,
 }

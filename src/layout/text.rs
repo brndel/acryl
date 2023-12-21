@@ -66,7 +66,7 @@ impl LayoutElement for TextElement {
 
         Vector2 {
             x: max_size.x,
-            y: self.font.font().metrics().height(self.font_size) * (lines.len() as f64).into(),
+            y: self.font.font().metrics().height(self.font_size) * (lines.len() as f64),
         }
     }
 

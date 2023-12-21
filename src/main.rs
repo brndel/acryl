@@ -1,23 +1,29 @@
 mod layout;
 mod util;
+mod doc_config;
 
 use std::{
     fs::{self, File},
-    str::FromStr,
     time::Instant,
 };
 
+
 use acryl_parser::{
-    ast::{CodeToken, ContentToken},
-    file::{DocFile, DocFileHeader},
+    ast::ContentToken,
+    file::DocFile,
     parse, ParsedFile,
 };
-use acryl_pdf::{font::Font, stream::Streambuilder, Document, DocumentConfig};
+use acryl_pdf::{
+    font::Font,
+    pdf::structure::{Document, Page},
+    resource_manager::ResourceManager,
+    stream::Streambuilder,
+};
 
 use layout::{linear_layout::LinearLayout, text::TextElement};
-use util::page_size::PageSize;
 
-use crate::layout::LayoutElement;
+
+use crate::{layout::LayoutElement, doc_config::DocumentConfig};
 
 const SAMPLE_FILE_PATH: &str = "examples/minimal.acryl";
 const OUT_FILE_PATH: &str = "out/minimal.pdf";
@@ -31,7 +37,7 @@ fn main() {
 
     let source = fs::read_to_string(SAMPLE_FILE_PATH).expect("could not open sample acryl file");
 
-    let doc = parse_sample(&source).unwrap();
+    let doc = parse_file(&source).unwrap();
     let file = match build_pdf_from_doc(doc) {
         Some(file) => file,
         None => return,
@@ -56,7 +62,7 @@ fn main() {
     );
 }
 
-fn parse_sample(source: &str) -> Option<DocFile> {
+fn parse_file(source: &str) -> Option<DocFile> {
     let result = parse(&source);
 
     if let Some(ParsedFile::Doc(doc)) = result {
@@ -69,24 +75,19 @@ fn parse_sample(source: &str) -> Option<DocFile> {
 }
 
 fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
-    let config = match parse_document_config(doc.header()) {
-        Ok(config) => config,
-        Err(err) => {
-            println!("{}", err);
-            return None;
-        }
-    };
+    let config: DocumentConfig = doc.header().try_into().map_err(|err| panic!("could not parse header '{}'", err)).unwrap();
 
     println!("{:?}", config);
 
-    let mut document = Document::new(config);
+    let mut resource_manager = ResourceManager::new();
     let default_font =
-        document.add_font(Font::load(FONT_DEJAVU_SERIF).expect("Font file not found"));
+        resource_manager.add_font(Font::load(FONT_DEJAVU_SERIF).expect("Font file not found"));
 
+        
     let mut layout = LinearLayout::vertical();
-
+        
     let mut text = TextElement::new(&default_font, 12.0);
-
+    
     for token in doc.content().tokens() {
         match token {
             ContentToken::Word(word) => text.add_word(word),
@@ -98,45 +99,21 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
             } => todo!(),
         }
     }
+    
     layout.add(text);
+    
+    let mut page = Page::new(config.default_page_size.clone());
 
-    let mut out_file = File::create(OUT_FILE_PATH).expect("could not create out file");
-    let page = document.add_page(None);
-    let mut builder = Streambuilder::new(page);
-
+    let mut builder = Streambuilder::new(&mut page);
     layout.render(builder.get_area().clone(), &mut builder);
-
     builder.render();
 
+    let document = Document::new(config.info, resource_manager, vec![page]);
+    let mut out_file = File::create(OUT_FILE_PATH).expect("could not create out file");
+
     document
-        .render(&mut out_file)
+        .write(&mut out_file)
         .expect("error while writing document");
 
     Some(out_file)
-}
-
-fn parse_document_config(header: &DocFileHeader) -> Result<DocumentConfig, &'static str> {
-    let author = match header.get("author") {
-        Some(token) => Some(
-            token
-                .as_str()
-                .ok_or("author needs to be of type str")?
-                .to_owned(),
-        ),
-        None => None,
-    };
-
-    let page_size = match header.get("pageSize") {
-        Some(size) => size
-            .as_ident()
-            .ok_or("'pageSize' needs to be of type ident")?
-            .parse()
-            .map_err(|_| "Unknow Page Size")?,
-        None => PageSize::default(),
-    };
-
-    Ok(DocumentConfig {
-        author,
-        default_page_size: page_size.get_size(),
-    })
 }
