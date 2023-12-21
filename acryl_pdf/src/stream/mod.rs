@@ -8,7 +8,7 @@ mod text;
 use std::io;
 use std::io::Write;
 
-use crate::render::PdfObj;
+use crate::pdf::PdfObj;
 
 pub use builder::Streambuilder;
 
@@ -22,6 +22,7 @@ impl Stream {
     pub fn new(instructions: Vec<StreamInstruction>) -> Self {
         Self { instructions }
     }
+    
     pub fn render(self) -> io::Result<Vec<u8>> {
         let mut f = Vec::new();
 

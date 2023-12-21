@@ -27,27 +27,22 @@ impl<'a> From<&'a Font> for FontMetrics<'a> {
     }
 }
 
+macro_rules! unit_fn {
+    ($name:ident) => {
+        #[inline]
+        pub fn $name(&self, font_size: f64) -> Pt {
+            Font::unit_to_pt(self.font.units_per_em, self.$name) * font_size
+        } 
+    }
+}
+
 impl<'a> FontMetrics<'a> {
-    #[inline]
-    pub fn ascender(&self, font_size: f64) -> Pt {
-        self.font.unit_to_pt(self.ascender, font_size)
-    }
 
-    #[inline]
-    pub fn descender(&self, font_size: f64) -> Pt {
-        self.font.unit_to_pt(self.descender, font_size)
-    }
-
-    #[inline]
-    pub fn height(&self, font_size: f64) -> Pt {
-        self.font.unit_to_pt(self.height, font_size)
-    }
-
-    #[inline]
-    pub fn leading(&self, font_size: f64) -> Pt {
-        self.font.unit_to_pt(self.leading, font_size)
-    }
-
+    unit_fn!(ascender);
+    unit_fn!(descender);
+    unit_fn!(height);
+    unit_fn!(leading);
+    
     #[inline]
     pub fn sized(self, font_size: f64) -> SizedFontMetrics<'a> {
         SizedFontMetrics {

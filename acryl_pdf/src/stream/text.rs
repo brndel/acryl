@@ -1,6 +1,6 @@
 use acryl_core::{Vector2, unit::Pt};
 
-use crate::render::PdfObj;
+use crate::pdf::PdfObj;
 
 use super::StreamInstruction;
 

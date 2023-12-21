@@ -1,7 +1,5 @@
 use acryl_core::Color;
 
-use crate::render::PdfObj;
-
 use super::StreamInstruction;
 
 pub enum ColorOperation {
@@ -11,21 +9,7 @@ pub enum ColorOperation {
 
 impl From<ColorOperation> for StreamInstruction {
     fn from(value: ColorOperation) -> Self {
-        match value {
-            ColorOperation::StrokeColor(color @ Color::Gray(..)) => (to_vec(color), "G"),
-            ColorOperation::FillColor(color @ Color::Gray(..)) => (to_vec(color), "g"),
-
-            ColorOperation::StrokeColor(color @ Color::RGB(..)) => (to_vec(color), "RG"),
-            ColorOperation::FillColor(color @ Color::RGB(..)) => (to_vec(color), "rg"),
-
-            ColorOperation::StrokeColor(color @ Color::CMYK(..)) => (to_vec(color), "K"),
-            ColorOperation::FillColor(color @ Color::CMYK(..)) => (to_vec(color), "k"),
-        }
-    }
-}
-
-fn to_vec(value: Color) -> Vec<PdfObj> {
-    macro_rules! into {
+        macro_rules! to_vec {
             ($($name:ident)*) => {
                 vec![
                     $(
@@ -35,9 +19,15 @@ fn to_vec(value: Color) -> Vec<PdfObj> {
             };
         }
 
-    match value {
-        Color::Gray(value) => into!(value),
-        Color::RGB(r, g, b) => into!(r g b),
-        Color::CMYK(c, m, y, k) => into!(c m y k),
+        match value {
+            ColorOperation::StrokeColor(Color::Gray(value)) => (to_vec!(value), "G"),
+            ColorOperation::FillColor(Color::Gray(value)) => (to_vec!(value), "g"),
+
+            ColorOperation::StrokeColor(Color::RGB(r, g, b)) => (to_vec!(r g b), "RG"),
+            ColorOperation::FillColor(Color::RGB(r, g, b)) => (to_vec!(r g b), "rg"),
+
+            ColorOperation::StrokeColor(Color::CMYK(c, m, y, k)) => (to_vec!(c m y k), "K"),
+            ColorOperation::FillColor(Color::CMYK(c, m, y, k)) => (to_vec!(c m y k), "k"),
+        }
     }
 }

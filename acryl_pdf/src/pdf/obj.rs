@@ -1,8 +1,10 @@
 use std::{borrow::Cow, io::Write};
 
-use acryl_core::{unit::Pt, Vector2, VectorComponent, Area};
+use acryl_core::{unit::Pt, Area, Vector2, VectorComponent};
 
-use super::{Context, PdfObjRef};
+use crate::writer::PdfWriter;
+
+use super::PdfObjRef;
 
 pub enum PdfObj {
     Null,
@@ -15,7 +17,7 @@ pub enum PdfObj {
     Name(Cow<'static, str>),
     Array(Vec<Self>),
     Dict(Vec<(Cow<'static, str>, Self)>),
-    Stream(Vec<u8>),
+    Stream(Cow<'static, [u8]>),
     Refernce(u64, u64),
 }
 
@@ -81,16 +83,16 @@ impl PdfObj {
         }
     }
 
-    pub fn add_to(self, context: &mut Context) -> PdfObjRef {
-        context.add(self)
+    pub fn add_to<T: PdfWriter>(self, writer: &mut T) -> PdfObjRef {
+        writer.add(self)
     }
 }
 
-macro_rules! impl_from_with_cast {
+macro_rules! impl_from_num_with_cast {
     ($($value:ident $cast_type:ty [ $($from_type:ty)* ] )*) => {
         $(
             $(
-                impl From<$from_type> for PdfObj {
+                impl<'a> From<$from_type> for PdfObj {
                     fn from(value: $from_type) -> Self {
                         Self::$value(value as $cast_type)
                     }
@@ -100,7 +102,7 @@ macro_rules! impl_from_with_cast {
     };
 }
 
-impl_from_with_cast!(
+impl_from_num_with_cast!(
     Int i64 [isize i8 i16 i32 i64]
     UInt u64 [usize u8 u16 u32 u64]
     Float f64 [f32 f64]
@@ -112,7 +114,7 @@ impl<T: Into<PdfObj>> From<Vec<T>> for PdfObj {
     }
 }
 
-impl<T: Into<PdfObj>> From<Option<T>> for PdfObj {
+impl<'a, T: Into<PdfObj>> From<Option<T>> for PdfObj {
     fn from(value: Option<T>) -> Self {
         match value {
             Some(obj) => obj.into(),
@@ -129,10 +131,7 @@ impl From<Pt> for PdfObj {
 
 impl<T: Into<PdfObj> + VectorComponent> From<Vector2<T>> for PdfObj {
     fn from(value: Vector2<T>) -> Self {
-        PdfObj::Array(vec![
-            value.x.into(),
-            value.y.into(),
-        ])
+        PdfObj::Array(vec![value.x.into(), value.y.into()])
     }
 }
 
@@ -143,6 +142,7 @@ impl<T: Into<PdfObj> + VectorComponent> From<Area<T>> for PdfObj {
             value.position.y,
             value.position.x + value.size.x,
             value.position.x + value.size.y,
-        ].into()
+        ]
+        .into()
     }
 }

@@ -1,18 +1,19 @@
 use std::cell::{Ref, RefCell};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::{fs, io, path::Path};
 
-use acryl_core::Vector2;
 use acryl_core::unit::Pt;
+use acryl_core::Vector2;
 use owned_ttf_parser::name_id::POST_SCRIPT_NAME;
 // use owned_ttf_parser::name_id::FULL_NAME;
 use owned_ttf_parser::FaceParsingError;
 use owned_ttf_parser::OwnedFace;
-use owned_ttf_parser::{AsFaceRef, Face, GlyphId};
+use owned_ttf_parser::{AsFaceRef, Face};
 
-use crate::render::{Context, PdfObj, PdfObjRef};
+use crate::pdf::{PdfObj, PdfObjRef};
 use crate::pdf_dict;
+use crate::writer::PdfWriter;
 
 use super::cmap::CMap;
 use super::font_metrics::FontMetrics;
@@ -28,11 +29,14 @@ pub enum FontLoadError {
 pub struct Font {
     face: OwnedFace,
     name: String,
-    units_per_em: u16,
-    used_gids: RefCell<HashMap<u16, char>>,
+    pub(super) units_per_em: u16,
+    glyph_info_cache: RefCell<BTreeMap<char, Option<GlyphInfo>>>,
+    // word_width_cache: RefCell<HashMap<String, Pt>>,
 }
 
 impl Font {
+    pub const DEFAULT_GLYPH_UNITS: u16 = 1000;
+
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, FontLoadError> {
         let font_data = fs::read(path).map_err(|e| FontLoadError::File(e))?;
 
@@ -55,7 +59,8 @@ impl Font {
             face,
             name,
             units_per_em,
-            used_gids: RefCell::default(),
+            glyph_info_cache: Default::default(),
+            // word_width_cache: Default::default(),
         })
     }
 
@@ -75,15 +80,27 @@ impl Font {
     }
 
     #[inline]
-    pub(super) fn unit_to_pt<U: Into<f64>, S: Into<f64>>(&self, value: U, font_size: S) -> Pt {
-        Pt(value.into() / (self.units_per_em as f64) * font_size.into())
+    pub(super) fn unit_to_pt<U: Into<f64>>(units_per_em: u16, value: U) -> Pt {
+        Pt(value.into() / units_per_em as f64)
     }
 
-    pub(super) fn get_glyph_info(&self, gid: u16) -> GlyphInfo {
-        let face = self.face();
-        let glyph_id = GlyphId(gid);
+    pub fn get_glyph_info(&self, ch: char) -> Option<GlyphInfo> {
+        if let Some(info) = self.glyph_info_cache.borrow().get(&ch) {
+            return info.to_owned();
+        }
 
-        let bbox = face.glyph_bounding_box(glyph_id).map_or((0, 0), |bbox| (bbox.width(), bbox.height()));
+        let face = self.face();
+        let glyph_id = match face.glyph_index(ch) {
+            Some(id) => id,
+            None => {
+                self.glyph_info_cache.borrow_mut().insert(ch, None);
+                return None;
+            }
+        };
+
+        let bbox = face
+            .glyph_bounding_box(glyph_id)
+            .map_or((0, 0), |bbox| (bbox.width(), bbox.height()));
         let size = Vector2 {
             x: bbox.0 as u16,
             y: bbox.1 as u16,
@@ -94,53 +111,59 @@ impl Font {
             y: face.glyph_ver_advance(glyph_id).unwrap_or(0),
         };
 
-        let gid = glyph_id.0;
-        GlyphInfo {
-            font: &self,
-            id: gid,
+        let id = glyph_id.0;
+        let info = GlyphInfo {
+            id,
+            ch,
             advance,
             size,
-        }
+            units_per_em: self.units_per_em,
+        };
+
+        self.glyph_info_cache.borrow_mut().insert(ch, Some(info));
+
+        self.glyph_info_cache.borrow().get(&ch).unwrap().to_owned()
     }
 
     pub(crate) fn get_char_id(&self, c: char) -> Option<u16> {
         self.face().glyph_index(c).map(|id| id.0)
     }
 
-    pub fn get_char_info(&self, c: char) -> Option<GlyphInfo> {
-        let id = self.face().glyph_index(c)?.0;
-        self.used_gids.borrow_mut().insert(id, c);
-        Some(self.get_glyph_info(id))
-    }
-
     pub fn measure_text(&self, text: &str, font_size: f64) -> Pt {
-        let mut width: u32 = 0;
+        // if let Some(width) = self.word_width_cache.borrow().get(text) {
+        //     return *width * font_size;
+        // }
 
-        for c in text.chars() {
+        let mut width: Pt = Pt::default();
+
+        for ch in text.chars() {
             width += self
-                .get_char_info(c)
-                .map_or(Self::default_glyph_width(), |i| i.advance.x) as u32;
+                .get_glyph_info(ch)
+                .map_or_else(|| self.default_glyph_width(), |i| i.advance(1.0).x);
         }
 
-        self.unit_to_pt(width, font_size)
+        // self.word_width_cache.borrow_mut().insert(text.to_owned(), width);
+
+        width * font_size
     }
 
     #[inline]
-    pub(crate) const fn default_glyph_width() -> u16 {
-        1000
+    pub(crate) fn default_glyph_width(&self) -> Pt {
+        Self::unit_to_pt(self.units_per_em, Self::DEFAULT_GLYPH_UNITS)
     }
 }
 
 impl Font {
-    pub fn render(&self, context: &mut Context) -> PdfObjRef {
+    pub fn render<T: PdfWriter>(&self, writer: &mut T) -> PdfObjRef {
         let metrics = self.metrics();
 
         let file_data = self.face.as_slice().to_owned();
 
-        let font_file = PdfObj::Stream(file_data).add_to(context);
+        let font_file = PdfObj::Stream(file_data.into()).add_to(writer);
 
         let cmap = CMap::from(self);
-        let cid_to_unicode_map = PdfObj::Stream(cmap.create_to_unicode_map(&self.name)).add_to(context);
+        let cid_to_unicode_map =
+            PdfObj::Stream(cmap.create_to_unicode_map(&self.name).into()).add_to(writer);
 
         let widths = cmap.create_width_vector();
 
@@ -157,7 +180,7 @@ impl Font {
             "FontFile2" => font_file.into(),
             "FontBBox" => bbox,
         )
-        .add_to(context);
+        .add_to(writer);
 
         let desc_font = pdf_dict!(
             "Type" => PdfObj::Name("Font".into()),
@@ -169,11 +192,11 @@ impl Font {
                 "Supplement" => PdfObj::Int(0),
             ),
             "W" => widths,
-            "DW" => Self::default_glyph_width().into(),
+            "DW" => Self::DEFAULT_GLYPH_UNITS.into(),
             "FontDescriptor" => descriptor.into(),
             "CIDToGIDMap" => PdfObj::Name("Identity".into())
         )
-        .add_to(context);
+        .add_to(writer);
 
         let font_dict = pdf_dict!(
             "Type" => PdfObj::Name("Font".into()),
@@ -184,10 +207,10 @@ impl Font {
             "DescendantFonts" => vec![desc_font].into(),
         );
 
-        context.add(font_dict)
+        writer.add(font_dict)
     }
 
-    pub(super) fn glyph_ids(&self) -> Ref<HashMap<u16, char>> {
-        self.used_gids.borrow()
+    pub(super) fn glyph_ids(&self) -> Ref<BTreeMap<char, Option<GlyphInfo>>> {
+        self.glyph_info_cache.borrow()
     }
 }

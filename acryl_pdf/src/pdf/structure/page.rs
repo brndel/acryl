@@ -1,12 +1,13 @@
-use acryl_core::{unit::Pt, Vector2, Area};
+use acryl_core::{unit::Pt, Area, Vector2};
 
 use crate::{
+    pdf::{PdfObj, PdfObjRef},
     pdf_dict,
-    render::{Context, PdfObj, PdfObjRef},
-    resource::Resources,
     stream::Stream,
-    util::CoordinateTransformer,
+    writer::PdfWriter, util::CoordinateTransformer,
 };
+
+use super::Resources;
 
 pub struct Page {
     area: Area<Pt>,
@@ -14,9 +15,9 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn new(area: Area<Pt>) -> Self {
+    pub fn new(size: Vector2<Pt>) -> Self {
         Self {
-            area,
+            area: Area::from_size(size),
             content: Vec::default(),
         }
     }
@@ -25,11 +26,12 @@ impl Page {
         &self.area
     }
 
-    pub fn render(self, context: &mut Context, parent: PdfObjRef) -> PdfObjRef {
+    pub fn render<T: PdfWriter>(self, writer: &mut T, parent: PdfObjRef, font_container: PdfObjRef) -> PdfObjRef {
         let mut content_refs = Vec::<PdfObjRef>::new();
 
-        for element in self.content {
-            content_refs.push(context.add(element));
+        for obj in self.content {
+            let obj_ref = obj.add_to(writer);
+            content_refs.push(obj_ref);
         }
 
         let obj = pdf_dict!(
@@ -37,15 +39,16 @@ impl Page {
             "Parent" => parent.into(),
             "MediaBox" => self.area.into(),
             "Contents" => content_refs.into(),
-            "Resources" => Resources::from(context).into()
+            "Resources" => Resources::new(font_container).into()
         );
 
-        context.add(obj)
+        writer.add(obj)
     }
 
-    pub fn push(&mut self, stream: Stream) {
-        if let Ok(content) = stream.render() {
-            self.content.push(PdfObj::Stream(content))
+    pub fn add_stream(&mut self, stream: Stream) {
+        match stream.render() {
+            Ok(content) => self.content.push(PdfObj::Stream(content.into())),
+            Err(err) => panic!("could not render stream {:?}", err),
         }
     }
 }

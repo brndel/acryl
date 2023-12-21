@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use acryl_core::Vector2;
 
-use crate::render::PdfObj;
+use crate::pdf::PdfObj;
 
 use super::{glyph_info::GlyphInfo, Font};
 
@@ -21,20 +21,23 @@ impl From<&Font> for CMap {
         let mut max_height: u16 = 0;
         let mut total_width: u32 = 0;
 
-        for (gid, ch) in &*value.glyph_ids() {
-            let GlyphInfo {
+        for (_, info) in &*value.glyph_ids() {
+            if let Some(GlyphInfo {
+                id,
+                ch,
                 advance: Vector2 { x: width, .. },
                 size: Vector2 { y: height, .. },
                 ..
-            } = value.get_glyph_info(*gid);
+            }) = info
+            {
+                if *height > max_height {
+                    max_height = *height;
+                }
 
-            if height > max_height {
-                max_height = height;
+                total_width += *width as u32;
+
+                map.insert(*id, (*ch, *width, *height));
             }
-
-            total_width += width as u32;
-
-            map.insert(gid.to_owned(), (ch.to_owned(), width, height));
         }
 
         CMap {
@@ -82,10 +85,7 @@ impl CMap {
         {
             map.push_str(&format!("{} beginbfchar\r\n", block.len()));
             for (glyph_id, unicode) in block {
-                map.push_str(&format!(
-                    "<{:04x}> <{:04x}>\r\n",
-                    glyph_id, unicode as u16
-                ));
+                map.push_str(&format!("<{:04x}> <{:04x}>\r\n", glyph_id, unicode as u16));
             }
             map.push_str("endbfchar\r\n");
         }

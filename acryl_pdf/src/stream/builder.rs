@@ -2,11 +2,7 @@ use std::rc::Rc;
 
 use acryl_core::{Area, unit::Pt, Vector2, Color};
 
-use crate::{
-    font::{Font, FontRef},
-    util::CoordinateTransformer,
-    Page,
-};
+use crate::{font::{Font, FontRef}, pdf::structure::Page, util::CoordinateTransformer};
 
 use super::{
     color::ColorOperation,
@@ -17,13 +13,13 @@ use super::{
     Stream, StreamInstruction,
 };
 
-pub struct Streambuilder<'a> {
-    page: &'a mut Page,
+pub struct Streambuilder<'page> {
+    page: &'page mut Page,
     instructions: Vec<StreamInstruction>,
 }
 
-impl<'a> Streambuilder<'a> {
-    pub fn new(page: &'a mut Page) -> Self {
+impl<'page> Streambuilder<'page> {
+    pub fn new(page: &'page mut Page) -> Self {
         Self {
             page,
             instructions: Vec::new(),
@@ -35,14 +31,14 @@ impl<'a> Streambuilder<'a> {
     }
 
     pub fn render(self) {
-        self.page.push(Stream::new(self.instructions))
+        self.page.add_stream(Stream::new(self.instructions))
     }
 
     fn push<T: Into<StreamInstruction>>(&mut self, instr: T) {
         self.instructions.push(instr.into())
     }
 
-    pub fn text<'b>(&'b mut self, font_ref: &FontRef, size: f64) -> TextStreambuilder<'b, 'a> {
+    pub fn text<'builder>(&'builder mut self, font_ref: &FontRef, size: f64) -> TextStreambuilder<'builder, 'page> {
         TextStreambuilder::new(self, font_ref, size)
     }
 
@@ -57,14 +53,14 @@ impl<'a> Streambuilder<'a> {
     }
 }
 
-pub struct TextStreambuilder<'a, 'b> {
-    builder: &'a mut Streambuilder<'b>,
+pub struct TextStreambuilder<'builder, 'page> {
+    builder: &'builder mut Streambuilder<'page>,
     font: Rc<Font>,
     font_size: f64,
 }
 
-impl<'a, 'b> TextStreambuilder<'a, 'b> {
-    pub fn new(builder: &'a mut Streambuilder<'b>, font_ref: &FontRef, font_size: f64) -> Self {
+impl<'builder, 'page> TextStreambuilder<'builder, 'page> {
+    pub fn new(builder: &'builder mut Streambuilder<'page>, font_ref: &FontRef, font_size: f64) -> Self {
         builder.push(TextControl::Begin);
         builder.push(TextStreamElement::Font(
             font_ref.name().to_owned(),
@@ -134,7 +130,7 @@ impl<'a, 'b> TextStreambuilder<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Drop for TextStreambuilder<'a, 'b> {
+impl Drop for TextStreambuilder<'_, '_> {
     fn drop(&mut self) {
         self.builder.push(TextControl::End);
     }
