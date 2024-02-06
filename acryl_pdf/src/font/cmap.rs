@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use acryl_core::Vector2;
 
-use crate::pdf::PdfObj;
+use crate::data::PdfObj;
 
 use super::{glyph_info::GlyphInfo, Font};
 

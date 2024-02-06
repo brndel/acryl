@@ -1,6 +1,6 @@
 use acryl_core::{Vector2, unit::Pt};
 
-use crate::pdf::PdfObj;
+use crate::data::PdfObj;
 
 use super::StreamInstruction;
 
@@ -51,7 +51,7 @@ impl From<TextStreamElement> for StreamInstruction {
             TextStreamElement::Position(v) => (vec![v.x.into(), v.y.into()], "Td"),
             TextStreamElement::NextLine => (vec![], "T*"),
             TextStreamElement::Font(name, size) => {
-                (vec![PdfObj::Name(name.into()), size.into()], "Tf")
+                (vec![PdfObj::name(name), size.into()], "Tf")
             }
             TextStreamElement::CharSpace(v) => (vec![v.into()], "Tc"),
             TextStreamElement::WordSpace(v) => (vec![v.into()], "Tw"),

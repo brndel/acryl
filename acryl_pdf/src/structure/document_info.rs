@@ -1,6 +1,6 @@
 use crate::pdf_dict;
 
-use crate::pdf::PdfObj;
+use crate::data::PdfObj;
 
 #[derive(Debug)]
 pub struct DocumentInfo {
@@ -13,14 +13,14 @@ impl From<DocumentInfo> for PdfObj {
     fn from(value: DocumentInfo) -> Self {
         macro_rules! literal {
             ($name:ident) => {
-                value.$name.map(|s| PdfObj::StringLiteral(s.into())).into()
+                value.$name.map(|s| PdfObj::string_literal(s))
             };
         }
         pdf_dict!(
             "Title" => literal!(title),
             "Author" => literal!(author),
             "Subject" => literal!(subject),
-            "Creator" => PdfObj::StringLiteral("Acryl".into()),
+            "Creator" => PdfObj::string_literal("Acryl"),
         )
     }
 }

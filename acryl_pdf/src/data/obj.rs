@@ -2,7 +2,7 @@ use std::{borrow::Cow, io::Write};
 
 use acryl_core::{unit::Pt, Area, Vector2, VectorComponent};
 
-use crate::writer::PdfWriter;
+use crate::write::PdfWriter;
 
 use super::PdfObjRef;
 
@@ -24,7 +24,7 @@ pub enum PdfObj {
 #[macro_export]
 macro_rules! pdf_dict {
     ($($k: expr => $v: expr),* $(,)?) => {
-        PdfObj::Dict(vec![$( ($k.into(), $v), )*] )
+        crate::data::PdfObj::Dict(vec![$( ($k.into(), $v.into()), )*] )
     };
 }
 
@@ -72,7 +72,7 @@ impl PdfObj {
             }
             PdfObj::Stream(content) => {
                 // let stream_content = stream.render()?;
-                let dict = pdf_dict!("Length" => content.len().into());
+                let dict = pdf_dict!("Length" => content.len());
                 dict.render(f)?;
                 writeln!(f, "")?;
                 writeln!(f, "stream")?;
@@ -83,8 +83,22 @@ impl PdfObj {
         }
     }
 
-    pub fn add_to<T: PdfWriter>(self, writer: &mut T) -> PdfObjRef {
+    pub fn add_to<D>(self, writer: &mut PdfWriter<D>) -> PdfObjRef {
         writer.add(self)
+    }
+
+    // pub fn add_reserved<D>(self, writer: &mut PdfWriter<D>, obj_ref: PdfObjRef) -> PdfObjRef {
+    //     writer.add_reserved(obj_ref, self)
+    // }
+}
+
+impl PdfObj {
+    pub fn name<T: Into<Cow<'static, str>>>(value: T) -> Self {
+        Self::Name(value.into())
+    }
+
+    pub fn string_literal<T: Into<Cow<'static, str>>>(value: T) -> Self {
+        Self::StringLiteral(value.into())
     }
 }
 

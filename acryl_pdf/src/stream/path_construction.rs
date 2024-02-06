@@ -42,14 +42,10 @@ impl From<PathConstruction> for StreamInstruction {
             PathConstruction::CubicBezierAutoEnd { p1, p2 } => (into!(p1 p2), "y"),
             PathConstruction::Close => (vec![], "h"),
             PathConstruction::Rect(area) => {
+                let size = &area.size;
                 let pos = area.bottom_left();
                 (
-                    vec![
-                        pos.x.into(),
-                        pos.y.into(),
-                        area.size.x.into(),
-                        area.size.y.into(),
-                    ],
+                    into!(pos size),
                     "re",
                 )
             }

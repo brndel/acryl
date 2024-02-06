@@ -1,74 +1,35 @@
-use std::{
-    collections::BTreeMap,
-    io::{self, Seek, Write},
-};
+use std::{cell::RefCell, io::{self, Seek, Write}, rc::Rc};
 
-use crate::{
-    pdf::{PdfObj, PdfObjRef, structure::Document},
-    pdf_dict,
-};
+use crate::{data::PdfObjRef, pdf_dict, structure::Document};
 
-pub trait PdfWriter {
-    fn add<T: Into<PdfObj>>(&mut self, obj: T) -> PdfObjRef;
-    fn reserve(&mut self) -> PdfObjRef;
-    fn insert<T: Into<PdfObj>>(&mut self, obj_ref: PdfObjRef, obj: T);
-}
+use super::{objects::Objects, pdf_writer::FontContainer, PdfWriter, WritePdf};
 
-pub struct PdfDocumentWriter {
+
+pub struct PdfDocument {
     objects: Objects,
     root: PdfObjRef,
     info: PdfObjRef,
 }
 
-#[derive(Default)]
-struct Objects {
-    id_counter: u64,
-    objects: BTreeMap<u64, PdfObj>,
-}
+impl PdfDocument {
+    pub fn new(document: Document) -> Self {
+        let objects = Rc::new(RefCell::new(Objects::default()));
 
-impl PdfWriter for Objects {
-    fn add<T: Into<PdfObj>>(&mut self, obj: T) -> PdfObjRef {
-        self.id_counter += 1;
-        let id = self.id_counter;
+        let mut writer = PdfWriter::new((), objects.clone());
 
-        self.objects.insert(id, obj.into());
+        let font_container = document.resource_manager.write(&mut writer);
 
-        PdfObjRef(id)
-    }
+        drop(writer);
 
-    fn reserve(&mut self) -> PdfObjRef {
-        self.id_counter += 1;
+        let mut writer = PdfWriter::new(FontContainer { font_container }, objects.clone());
 
-        PdfObjRef(self.id_counter)
-    }
+        let root = document.catalog.write(&mut writer);
+        let info = writer.add(document.info);
 
-    fn insert<T: Into<PdfObj>>(&mut self, obj_ref: PdfObjRef, obj: T) {
-        self.objects.insert(obj_ref.0, obj.into());
-    }
-}
+        drop(writer);
 
-impl PdfWriter for PdfDocumentWriter {
-    fn add<T: Into<PdfObj>>(&mut self, obj: T) -> PdfObjRef {
-        self.objects.add(obj)
-    }
-
-    fn reserve(&mut self) -> PdfObjRef {
-        self.objects.reserve()
-    }
-
-    fn insert<T: Into<PdfObj>>(&mut self, obj_ref: PdfObjRef, obj: T) {
-        self.objects.insert(obj_ref, obj)
-    }
-}
-
-impl From<Document> for PdfDocumentWriter {
-    fn from(value: Document) -> Self {
-        let mut objects = Objects::default();
-
-        let font_container = value.resource_manager.render(&mut objects);
-
-        let root = value.catalog.render(&mut objects, font_container);
-        let info = objects.add(value.info);
+        let objects = Rc::try_unwrap(objects).ok().expect("Lost a Rc<Objects> somewhere while writing Document");
+        let objects = objects.take();
 
         return Self {
             objects,
@@ -76,9 +37,7 @@ impl From<Document> for PdfDocumentWriter {
             info,
         };
     }
-}
 
-impl PdfDocumentWriter {
     pub fn write<F: Write + Seek>(self, f: &mut F) -> io::Result<()> {
         writeln!(f, "%PDF-1.7")?;
 
@@ -146,9 +105,9 @@ impl PdfDocumentWriter {
         }
 
         let trailer = pdf_dict!(
-            "Size" => obj_count.into(),
-            "Root" => self.root.into(),
-            "Info" => self.info.into(),
+            "Size" => obj_count,
+            "Root" => self.root,
+            "Info" => self.info,
         );
 
         writeln!(f, "trailer")?;
@@ -161,4 +120,5 @@ impl PdfDocumentWriter {
 
         Ok(())
     }
+    
 }

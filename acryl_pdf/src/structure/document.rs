@@ -1,6 +1,5 @@
-use std::io::{Write, Seek, self};
 
-use crate::{resource_manager::ResourceManager, writer::PdfDocumentWriter};
+use crate::resource_manager::ResourceManager;
 
 use super::{DocumentCatalog, DocumentInfo, Page};
 
@@ -17,11 +16,5 @@ impl Document {
             catalog: DocumentCatalog::new(pages),
             resource_manager,
         }
-    }
-
-    pub fn write<F: Write + Seek>(self, f: &mut F) -> io::Result<()> {
-        let writer = PdfDocumentWriter::from(self);
-
-        writer.write(f)
     }
 }

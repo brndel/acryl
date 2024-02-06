@@ -1,6 +1,4 @@
-use crate::{
-    pdf::{PdfObj, PdfObjRef},
-    pdf_dict,
+use crate::{data::{PdfObj, PdfObjRef}, pdf_dict
 };
 
 pub struct Resources {
@@ -16,7 +14,7 @@ impl Resources {
 impl<'a> From<Resources> for PdfObj {
     fn from(value: Resources) -> Self {
         pdf_dict!(
-            "Font" => value.font_container.into()
+            "Font" => value.font_container
         )
     }
 }

@@ -8,7 +8,7 @@ mod text;
 use std::io;
 use std::io::Write;
 
-use crate::pdf::PdfObj;
+use crate::data::PdfObj;
 
 pub use builder::Streambuilder;
 

@@ -11,9 +11,9 @@ use owned_ttf_parser::FaceParsingError;
 use owned_ttf_parser::OwnedFace;
 use owned_ttf_parser::{AsFaceRef, Face};
 
-use crate::pdf::{PdfObj, PdfObjRef};
+use crate::data::{PdfObj, PdfObjRef};
 use crate::pdf_dict;
-use crate::writer::PdfWriter;
+use crate::write::WritePdf;
 
 use super::cmap::CMap;
 use super::font_metrics::FontMetrics;
@@ -151,10 +151,14 @@ impl Font {
     pub(crate) fn default_glyph_width(&self) -> Pt {
         Self::unit_to_pt(self.units_per_em, Self::DEFAULT_GLYPH_UNITS)
     }
+
+    pub(super) fn glyph_ids(&self) -> Ref<BTreeMap<char, Option<GlyphInfo>>> {
+        self.glyph_info_cache.borrow()
+    }
 }
 
-impl Font {
-    pub fn render<T: PdfWriter>(&self, writer: &mut T) -> PdfObjRef {
+impl<D> WritePdf<D> for &Font {
+    fn write(self, writer: &mut crate::write::PdfWriter<D>) -> PdfObjRef {
         let metrics = self.metrics();
 
         let file_data = self.face.as_slice().to_owned();
@@ -170,47 +174,44 @@ impl Font {
         let bbox = cmap.create_bbox();
 
         let descriptor = pdf_dict!(
-            "Type" => PdfObj::Name("FontDescriptor".into()),
-            "FontName" => PdfObj::Name(self.name.clone().into()),
-            "Ascent" => metrics.ascender.into(),
-            "Descent" => metrics.descender.into(),
-            "Leading" => metrics.leading.into(),
-            "CapHeight" => metrics.cap_height.into(),
-            "ItalicAngle" => 0.into(),
-            "FontFile2" => font_file.into(),
+            "Type" => PdfObj::name("FontDescriptor"),
+            "FontName" => PdfObj::name(self.name.clone()),
+            "Ascent" => metrics.ascender,
+            "Descent" => metrics.descender,
+            "Leading" => metrics.leading,
+            "CapHeight" => metrics.cap_height,
+            "ItalicAngle" => 0,
+            "FontFile2" => font_file,
             "FontBBox" => bbox,
         )
         .add_to(writer);
 
         let desc_font = pdf_dict!(
-            "Type" => PdfObj::Name("Font".into()),
-            "Subtype" => PdfObj::Name("CIDFontType2".into()),
-            "BaseFont" => PdfObj::Name(self.name.clone().into()),
+            "Type" => PdfObj::name("Font"),
+            "Subtype" => PdfObj::name("CIDFontType2"),
+            "BaseFont" => PdfObj::name(self.name.clone()),
             "CIDSystemInfo" => pdf_dict!(
-                "Registry" => PdfObj::StringLiteral("Adobe".into()),
-                "Ordering" => PdfObj::StringLiteral("Identity".into()),
+                "Registry" => PdfObj::string_literal("Adobe"),
+                "Ordering" => PdfObj::string_literal("Identity"),
                 "Supplement" => PdfObj::Int(0),
             ),
             "W" => widths,
-            "DW" => Self::DEFAULT_GLYPH_UNITS.into(),
-            "FontDescriptor" => descriptor.into(),
-            "CIDToGIDMap" => PdfObj::Name("Identity".into())
+            "DW" => Font::DEFAULT_GLYPH_UNITS,
+            "FontDescriptor" => descriptor,
+            "CIDToGIDMap" => PdfObj::name("Identity")
         )
         .add_to(writer);
 
         let font_dict = pdf_dict!(
-            "Type" => PdfObj::Name("Font".into()),
-            "Subtype" =>  PdfObj::Name("Type0".into()),
-            "BaseFont" => PdfObj::Name(self.name.clone().into()),
-            "Encoding" => PdfObj::Name("Identity-H".into()),
-            "ToUnicode" => cid_to_unicode_map.into(),
-            "DescendantFonts" => vec![desc_font].into(),
+            "Type" => PdfObj::name("Font"),
+            "Subtype" =>  PdfObj::name("Type0"),
+            "BaseFont" => PdfObj::name(self.name.clone()),
+            "Encoding" => PdfObj::name("Identity-H"),
+            "ToUnicode" => cid_to_unicode_map,
+            "DescendantFonts" => vec![desc_font],
         );
 
         writer.add(font_dict)
     }
 
-    pub(super) fn glyph_ids(&self) -> Ref<BTreeMap<char, Option<GlyphInfo>>> {
-        self.glyph_info_cache.borrow()
-    }
 }

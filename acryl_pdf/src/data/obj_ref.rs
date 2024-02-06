@@ -1,6 +1,6 @@
 use super::PdfObj;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct PdfObjRef(pub(crate) u64);
 
 impl From<PdfObjRef> for PdfObj {

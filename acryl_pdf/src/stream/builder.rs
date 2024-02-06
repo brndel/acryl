@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use acryl_core::{Area, unit::Pt, Vector2, Color};
 
-use crate::{font::{Font, FontRef}, pdf::structure::Page, util::CoordinateTransformer};
+use crate::{font::{Font, FontRef}, structure::Page, util::CoordinateTransformer};
 
 use super::{
     color::ColorOperation,
