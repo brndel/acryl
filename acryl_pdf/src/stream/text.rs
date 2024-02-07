@@ -1,4 +1,4 @@
-use acryl_core::{Vector2, unit::Pt};
+use acryl_core::math::{PdfCoords, Pt, Vector2};
 
 use crate::data::PdfObj;
 
@@ -11,7 +11,7 @@ pub enum TextControl {
 }
 
 pub enum TextStreamElement {
-    Position(Vector2<Pt>),
+    Position(Vector2<Pt, PdfCoords>),
     NextLine,
     Font(String, Pt),
     CharSpace(Pt),

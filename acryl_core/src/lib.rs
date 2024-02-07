@@ -1,12 +1,6 @@
-pub mod unit;
-pub mod vector;
-mod area;
-mod matrix;
-pub mod color;
+mod color;
 mod align;
+pub mod math;
 
-pub use vector::*;
-pub use area::*;
-pub use matrix::*;
 pub use color::*;
 pub use align::*;

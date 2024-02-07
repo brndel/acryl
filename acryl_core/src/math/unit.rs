@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use crate::vector::VectorComponent;
+use super::vector::VectorComponent;
 
 pub(crate) type UnitValue = f64;
 

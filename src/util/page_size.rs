@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
-use acryl_core::{unit::{Mm, Pt}, Vector2};
-
+use acryl_core::math::{AcrylCoords, Mm, Pt, Vector2};
 
 pub enum PageSize {
     A0,
@@ -41,21 +40,21 @@ impl FromStr for PageSize {
             _ => Err(PageSizeUnknown),
         }
     }
-
 }
 
 impl PageSize {
-    pub fn get_size(&self) -> Vector2<Pt> {
+    pub fn get_size(&self) -> Vector2<Pt, AcrylCoords> {
         match self {
-            PageSize::A0 => Vector2 { x: Mm(841.00), y: Mm(1189.00) },
-            PageSize::A1 => Vector2 { x: Mm(594.0) , y: Mm(841.0)},
-            PageSize::A2 => Vector2 { x: Mm(420.0) , y: Mm(594.0)},
-            PageSize::A3 => Vector2 { x: Mm(297.0) , y: Mm(420.0)},
-            PageSize::A4 => Vector2 { x: Mm(210.0) , y: Mm(297.0)},
-            PageSize::A5 => Vector2 { x: Mm(148.0) , y: Mm(210.0)},
-            PageSize::A6 => Vector2 { x: Mm(105.0) , y: Mm(148.0)},
-            PageSize::A7 => Vector2 { x: Mm(74.0) , y: Mm(105.0)},
-            PageSize::A8 => Vector2 { x: Mm(52.0) , y: Mm(74.0)},
-        }.convert()
+            PageSize::A0 => Vector2::<_, AcrylCoords>::new(Mm(841.00), Mm(1189.00)),
+            PageSize::A1 => Vector2::new(Mm(594.0), Mm(841.0)),
+            PageSize::A2 => Vector2::new(Mm(420.0), Mm(594.0)),
+            PageSize::A3 => Vector2::new(Mm(297.0), Mm(420.0)),
+            PageSize::A4 => Vector2::new(Mm(210.0), Mm(297.0)),
+            PageSize::A5 => Vector2::new(Mm(148.0), Mm(210.0)),
+            PageSize::A6 => Vector2::new(Mm(105.0), Mm(148.0)),
+            PageSize::A7 => Vector2::new(Mm(74.0), Mm(105.0)),
+            PageSize::A8 => Vector2::new(Mm(52.0), Mm(74.0)),
+        }
+        .convert()
     }
 }

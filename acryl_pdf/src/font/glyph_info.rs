@@ -1,4 +1,4 @@
-use acryl_core::{unit::Pt, Vector2};
+use acryl_core::math::{Pt, Vector2};
 
 use super::Font;
 
@@ -19,19 +19,19 @@ impl GlyphInfo {
 
     #[inline]
     pub fn advance(&self, font_size: f64) -> Vector2<Pt> {
-        Vector2 {
-            x: Font::unit_to_pt(self.units_per_em, self.advance.x),
-            y: Font::unit_to_pt(self.units_per_em, self.advance.y),
-        }
+        Vector2::new(
+            Font::unit_to_pt(self.units_per_em, self.advance.x),
+            Font::unit_to_pt(self.units_per_em, self.advance.y),
+        )
         .scale(font_size)
     }
 
     #[inline]
     pub fn size(&self, font_size: f64) -> Vector2<Pt> {
-        Vector2 {
-            x: Font::unit_to_pt(self.units_per_em, self.size.x),
-            y: Font::unit_to_pt(self.units_per_em, self.size.y),
-        }
+        Vector2::new(
+            Font::unit_to_pt(self.units_per_em, self.size.x),
+            Font::unit_to_pt(self.units_per_em, self.size.y),
+        )
         .scale(font_size)
     }
 }

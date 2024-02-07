@@ -1,4 +1,4 @@
-use acryl_core::{unit::Pt, Area, Vector2};
+use acryl_core::math::{AcrylCoords, Area, PdfCoords, Pt, Vector2};
 
 use crate::{
     data::{PdfObj, PdfObjRef},
@@ -46,21 +46,21 @@ impl WritePdf for Page {
         pdf_dict!(
             "Type" => PdfObj::name("Page"),
             "Parent" => writer.parent(),
-            "MediaBox" => self.area,
+            "MediaBox" => self.area.clone().transform(self.area),
             "Contents" => content_refs,
             "Resources" => Resources::new(writer.font_container())
         ).add_to(writer)
     }
 }
 
-impl CoordinateTransformer<Vector2<Pt>> for Page {
-    fn transform(&self, value: Vector2<Pt>) -> Vector2<Pt> {
+impl CoordinateTransformer<Vector2<Pt, AcrylCoords>, Vector2<Pt, PdfCoords>> for Page {
+    fn transform(&self, value: Vector2<Pt, AcrylCoords>) -> Vector2<Pt, PdfCoords> {
         self.area.transform(value)
     }
 }
 
-impl CoordinateTransformer<Area<Pt>> for Page {
-    fn transform(&self, value: Area<Pt>) -> Area<Pt> {
+impl CoordinateTransformer<Area<Pt, AcrylCoords>, Area<Pt, PdfCoords>> for Page {
+    fn transform(&self, value: Area<Pt, AcrylCoords>) -> Area<Pt, PdfCoords> {
         self.area.transform(value)
     }
 }

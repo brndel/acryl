@@ -1,4 +1,4 @@
-use acryl_core::{Vector2, unit::Pt, Area};
+use acryl_core::math::{Vector2, Pt, Area};
 use acryl_pdf::stream::Streambuilder;
 
 pub mod linear_layout;

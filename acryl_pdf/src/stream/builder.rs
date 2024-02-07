@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use acryl_core::{Area, unit::Pt, Vector2, Color};
+use acryl_core::{math::{AcrylCoords, Area, Pt, Vector2}, Color};
 
 use crate::{font::{Font, FontRef}, structure::Page, util::CoordinateTransformer};
 
@@ -42,7 +42,7 @@ impl<'page> Streambuilder<'page> {
         TextStreambuilder::new(self, font_ref, size)
     }
 
-    pub fn draw_rect(&mut self, rect: Area<Pt>, color: Color) {
+    pub fn draw_rect(&mut self, rect: Area<Pt, AcrylCoords>, color: Color) {
         let rect = self.page.transform(rect);
 
         self.push(GraphicsState::SaveState);
@@ -73,10 +73,10 @@ impl<'builder, 'page> TextStreambuilder<'builder, 'page> {
         }
     }
 
-    pub fn set_position(&mut self, mut position: Vector2<Pt>) {
+    pub fn set_position(&mut self, mut position: Vector2<Pt, AcrylCoords>) {
         position.y += self.font.metrics().ascender(self.font_size);
 
-        position = self.builder.page.transform(position);
+        let position = self.builder.page.transform(position);
 
         self.builder.push(TextStreamElement::Position(position))
     }

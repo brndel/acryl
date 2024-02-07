@@ -14,10 +14,7 @@ use acryl_parser::{
     parse, ParsedFile,
 };
 use acryl_pdf::{
-    font::Font,
-    pdf::structure::{Document, Page},
-    resource_manager::ResourceManager,
-    stream::Streambuilder,
+    font::Font, resource_manager::ResourceManager, stream::Streambuilder, structure::{Document, Page}, write::PdfDocument
 };
 
 use layout::{linear_layout::LinearLayout, text::TextElement};
@@ -110,6 +107,8 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
 
     let document = Document::new(config.info, resource_manager, vec![page]);
     let mut out_file = File::create(OUT_FILE_PATH).expect("could not create out file");
+
+    let document = PdfDocument::new(document);
 
     document
         .write(&mut out_file)

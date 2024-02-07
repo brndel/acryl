@@ -1,4 +1,4 @@
-use crate::VectorComponent;
+use crate::math::vector::VectorComponent;
 
 
 pub struct Matrix<T: VectorComponent, const Y: usize, const X: usize> {

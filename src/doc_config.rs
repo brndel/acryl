@@ -1,6 +1,6 @@
-use acryl_core::{unit::Pt, Vector2};
+use acryl_core::math::{Pt, Vector2};
 use acryl_parser::file::DocFileHeader;
-use acryl_pdf::pdf::structure::DocumentInfo;
+use acryl_pdf::structure::DocumentInfo;
 
 use crate::util::page_size::PageSize;
 

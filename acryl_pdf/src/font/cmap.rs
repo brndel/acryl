@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use acryl_core::Vector2;
+use acryl_core::math::Vector2;
 
 use crate::data::PdfObj;
 

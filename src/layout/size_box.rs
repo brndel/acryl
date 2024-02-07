@@ -1,4 +1,4 @@
-use acryl_core::{Vector2, unit::Pt, Area};
+use acryl_core::math::{Vector2, Pt, Area};
 use acryl_pdf::stream::Streambuilder;
 
 use super::LayoutElement;
@@ -17,6 +17,6 @@ impl LayoutElement for SizeBox {
 
 impl SizeBox {
     pub fn new<X: Into<Pt>, Y: Into<Pt>>(x: X, y: Y) -> Self {
-        Self { size: Vector2 { x: x.into(), y: y.into() } }
+        Self { size: Vector2::new(x.into(), y.into()) }
     }
 }

@@ -1,4 +1,4 @@
-use acryl_core::{VectorComponent, Vector2};
+use acryl_core::math::{VectorComponent, Vector2};
 
 pub enum Orientation {
     Vertical,
@@ -14,8 +14,8 @@ impl Default for Orientation {
 impl Orientation {
     pub fn create_vector<T: VectorComponent>(&self, main: T, cross: T) -> Vector2<T> {
         match self {
-            Orientation::Vertical => Vector2 { x: cross, y: main },
-            Orientation::Horizontal => Vector2 { x: main, y: cross },
+            Orientation::Vertical => Vector2::new(cross, main),
+            Orientation::Horizontal => Vector2::new(main, cross),
         }
     }
 

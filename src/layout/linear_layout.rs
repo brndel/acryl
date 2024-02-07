@@ -1,4 +1,4 @@
-use acryl_core::{unit::Pt, Area, CrossAxisAlignment, MainAxisAlignment, Vector2};
+use acryl_core::{math::{Pt, Area, Vector2}, CrossAxisAlignment, MainAxisAlignment};
 
 use crate::util::orientation::Orientation;
 

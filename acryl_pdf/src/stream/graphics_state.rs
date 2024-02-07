@@ -1,4 +1,4 @@
-use acryl_core::{unit::Pt, Matrix};
+use acryl_core::math::{Pt, Matrix};
 
 use super::StreamInstruction;
 

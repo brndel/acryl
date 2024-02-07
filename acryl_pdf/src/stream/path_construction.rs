@@ -1,25 +1,25 @@
-use acryl_core::{unit::Pt, Area, Vector2};
+use acryl_core::math::{Area, PdfCoords, Pt, Vector2};
 
 use super::StreamInstruction;
 
 pub enum PathConstruction {
-    Move(Vector2<Pt>),
-    LineTo(Vector2<Pt>),
+    Move(Vector2<Pt, PdfCoords>),
+    LineTo(Vector2<Pt, PdfCoords>),
     CubicBezier {
-        p1: Vector2<Pt>,
-        p2: Vector2<Pt>,
-        p3: Vector2<Pt>,
+        p1: Vector2<Pt, PdfCoords>,
+        p2: Vector2<Pt, PdfCoords>,
+        p3: Vector2<Pt, PdfCoords>,
     },
     CubicBezierAutoStart {
-        p2: Vector2<Pt>,
-        p3: Vector2<Pt>,
+        p2: Vector2<Pt, PdfCoords>,
+        p3: Vector2<Pt, PdfCoords>,
     },
     CubicBezierAutoEnd {
-        p1: Vector2<Pt>,
-        p2: Vector2<Pt>,
+        p1: Vector2<Pt, PdfCoords>,
+        p2: Vector2<Pt, PdfCoords>,
     },
     Close,
-    Rect(Area<Pt>),
+    Rect(Area<Pt, PdfCoords>),
 }
 
 impl From<PathConstruction> for StreamInstruction {

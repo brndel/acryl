@@ -3,8 +3,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::{fs, io, path::Path};
 
-use acryl_core::unit::Pt;
-use acryl_core::Vector2;
+use acryl_core::math::{Pt, Vector2};
 use owned_ttf_parser::name_id::POST_SCRIPT_NAME;
 // use owned_ttf_parser::name_id::FULL_NAME;
 use owned_ttf_parser::FaceParsingError;
@@ -101,15 +100,12 @@ impl Font {
         let bbox = face
             .glyph_bounding_box(glyph_id)
             .map_or((0, 0), |bbox| (bbox.width(), bbox.height()));
-        let size = Vector2 {
-            x: bbox.0 as u16,
-            y: bbox.1 as u16,
-        };
+        let size = Vector2::new(bbox.0 as u16, bbox.1 as u16);
 
-        let advance = Vector2 {
-            x: face.glyph_hor_advance(glyph_id).unwrap_or(0),
-            y: face.glyph_ver_advance(glyph_id).unwrap_or(0),
-        };
+        let advance = Vector2::new(
+            face.glyph_hor_advance(glyph_id).unwrap_or(0),
+            face.glyph_ver_advance(glyph_id).unwrap_or(0),
+        );
 
         let id = glyph_id.0;
         let info = GlyphInfo {
@@ -213,5 +209,4 @@ impl<D> WritePdf<D> for &Font {
 
         writer.add(font_dict)
     }
-
 }

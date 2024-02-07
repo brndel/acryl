@@ -1,6 +1,6 @@
 use std::{borrow::Cow, io::Write};
 
-use acryl_core::{unit::Pt, Area, Vector2, VectorComponent};
+use acryl_core::math::{Area, Coords, PdfCoords, Pt, Vector2, VectorComponent};
 
 use crate::write::PdfWriter;
 
@@ -143,14 +143,14 @@ impl From<Pt> for PdfObj {
     }
 }
 
-impl<T: Into<PdfObj> + VectorComponent> From<Vector2<T>> for PdfObj {
-    fn from(value: Vector2<T>) -> Self {
-        PdfObj::Array(vec![value.x.into(), value.y.into()])
+impl<T: Into<PdfObj> + VectorComponent, C: Coords> From<Vector2<T, C>> for PdfObj {
+    fn from(value: Vector2<T, C>) -> Self {
+        vec![value.x, value.y].into()
     }
 }
 
-impl<T: Into<PdfObj> + VectorComponent> From<Area<T>> for PdfObj {
-    fn from(value: Area<T>) -> Self {
+impl<T: Into<PdfObj> + VectorComponent> From<Area<T, PdfCoords>> for PdfObj {
+    fn from(value: Area<T, PdfCoords>) -> Self {
         vec![
             value.position.x,
             value.position.y,

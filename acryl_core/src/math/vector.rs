@@ -1,4 +1,6 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::{marker::PhantomData, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}};
+
+use super::coords::{Coords, DefaultCoords};
 
 pub trait VectorComponent:
     Add<Output = Self>
@@ -29,7 +31,7 @@ vector_component_impl!(u8 u16 u32 u64 i8 i16 i32 i64 usize isize f32 f64);
 macro_rules! op_impl {
     ($name:ident, ($op:tt $trait:ident $trait_fn:ident), ($op_assign:tt $trait_assign:ident $assign_fn:ident), $($val:ident,)*) => {
 
-impl<T: VectorComponent> $trait for $name<T> {
+impl<T: VectorComponent, C: Coords> $trait for $name<T, C> {
     type Output = Self;
 
     fn $trait_fn(self, rhs: Self) -> Self::Output {
@@ -37,6 +39,7 @@ impl<T: VectorComponent> $trait for $name<T> {
             $(
                 $val: self.$val $op rhs.$val,
             )*
+            phantom: Default::default()
         }
     }
 }
@@ -56,18 +59,27 @@ macro_rules! vector {
     ($name:ident, ($($val:ident),+)) => {
 
 #[derive(Clone, Default, Debug)]
-pub struct $name<T: VectorComponent> {
+pub struct $name<T: VectorComponent, C: Coords = DefaultCoords> {
     $(
         pub $val: T,
     )+
+    phantom: PhantomData<C>
 }
 
-impl<T: VectorComponent> $name<T> {
+impl<T: VectorComponent, C: Coords> $name<T, C> {
+    pub fn new($($val: T,)*) -> Self {
+        Self {
+            $($val,)*
+            phantom: Default::default()
+        }
+    }
+
     pub fn min(self, other: Self) -> Self {
         Self {
             $(
                 $val: if self.$val < other.$val { self.$val } else { other.$val },
             )*
+            phantom: Default::default()
         }
     }
 
@@ -76,6 +88,7 @@ impl<T: VectorComponent> $name<T> {
             $(
                 $val: if self.$val > other.$val { self.$val } else { other.$val },
             )*
+            phantom: Default::default()
         }
 
     }
@@ -85,6 +98,7 @@ impl<T: VectorComponent> $name<T> {
             $(
                 $val: self.$val.into(),
             )*
+            phantom: Default::default()
         }
     }
 
@@ -93,6 +107,16 @@ impl<T: VectorComponent> $name<T> {
             $(
                 $val: self.$val * value,
             )*
+            phantom: Default::default()
+        }
+    }
+
+    pub fn with_coords<R: Coords>(self) -> $name<T, R> {
+        $name {
+            $(
+                $val: self.$val,
+            )*
+            phantom: PhantomData::<R>,
         }
     }
 }
@@ -108,6 +132,7 @@ impl<T: VectorComponent> Mul<T> for $name<T> {
             $(
                 $val: self.$val * rhs,
             )*
+            phantom: Default::default()
         }
     }
 }
@@ -118,6 +143,7 @@ impl<T: VectorComponent> From<T> for $name<T> {
             $(
                 $val: value,
             )*
+            phantom: Default::default()
         }
     }
 }

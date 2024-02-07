@@ -1,4 +1,4 @@
-use acryl_core::{Vector2, unit::Pt, Area, Color};
+use acryl_core::{math::{Vector2, Pt, Area}, Color};
 
 use super::{LayoutBox, LayoutElement};
 

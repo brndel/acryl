@@ -1,4 +1,4 @@
-use acryl_core::{unit::Pt, Vector2, Area};
+use acryl_core::math::{Pt, Vector2, Area};
 use acryl_pdf::{
     font::{Font, FontRef},
     stream::Streambuilder,
@@ -64,10 +64,10 @@ impl LayoutElement for TextElement {
     fn get_min_size(&self, max_size: Vector2<Pt>) -> Vector2<Pt> {
         let lines = self.layout_words(max_size.x);
 
-        Vector2 {
-            x: max_size.x,
-            y: self.font.font().metrics().height(self.font_size) * (lines.len() as f64),
-        }
+        Vector2::new(
+            max_size.x,
+            self.font.font().metrics().height(self.font_size) * (lines.len() as f64),
+        )
     }
 
     fn render(&self, area: Area<Pt>, builder: &mut Streambuilder) {

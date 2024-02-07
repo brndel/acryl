@@ -1,4 +1,4 @@
-use acryl_core::unit::Pt;
+use acryl_core::math::Pt;
 
 use super::Font;
 
