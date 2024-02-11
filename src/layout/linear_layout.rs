@@ -1,6 +1,6 @@
 use acryl_core::{math::{Pt, Area, Vector2}, CrossAxisAlignment, MainAxisAlignment};
 
-use crate::util::orientation::Orientation;
+use acryl_core::Orientation;
 
 use super::{LayoutBox, LayoutElement};
 

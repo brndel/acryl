@@ -1,4 +1,4 @@
-use acryl_core::math::{VectorComponent, Vector2};
+use crate::math::{VectorComponent, Vector2};
 
 pub enum Orientation {
     Vertical,
