@@ -1,4 +1,7 @@
-use crate::math::{coords::Coords, vector::{Vector2, VectorComponent}};
+use crate::math::{
+    coords::Coords,
+    vector::{Vector2, VectorComponent},
+};
 
 use super::DefaultCoords;
 
@@ -9,13 +12,13 @@ pub struct Area<T: VectorComponent, C: Coords = DefaultCoords> {
 }
 
 impl<T: VectorComponent, C: Coords> Area<T, C> {
-
     pub fn from_size(size: Vector2<T, C>) -> Self {
         Self {
             position: Vector2::default(),
             size,
         }
     }
+
     pub fn from_points(top_left: Vector2<T, C>, bottom_right: Vector2<T, C>) -> Self {
         Self {
             position: top_left.clone(),
@@ -52,5 +55,12 @@ impl<T: VectorComponent, C: Coords> Area<T, C> {
 
     pub fn right(&self) -> T {
         self.position.x + self.size.x
+    }
+
+    pub fn with_coords<R: Coords>(self) -> Area<T, R> {
+        Area {
+            position: self.position.with_coords::<R>(),
+            size: self.size.with_coords::<R>(),
+        }
     }
 }
