@@ -4,7 +4,8 @@ use crate::{
     data::{PdfObj, PdfObjRef},
     pdf_dict,
     stream::Stream,
-    write::{PdfWriter, WritePdf}, util::CoordinateTransformer,
+    util::CoordinateTransformer,
+    write::{PdfWriter, WritePdf},
 };
 
 use super::Resources;
@@ -37,19 +38,21 @@ impl Page {
 impl WritePdf for Page {
     fn write(self, writer: &mut PdfWriter) -> PdfObjRef {
         let mut content_refs = Vec::<PdfObjRef>::new();
-    
+
         for obj in self.content {
             let obj_ref = writer.add(obj);
             content_refs.push(obj_ref);
         }
 
+
         pdf_dict!(
             "Type" => PdfObj::name("Page"),
             "Parent" => writer.parent(),
-            "MediaBox" => self.area.clone().transform(self.area),
+            "MediaBox" => self.area.size.with_coords::<PdfCoords>(),
             "Contents" => content_refs,
             "Resources" => Resources::new(writer.font_container())
-        ).add_to(writer)
+        )
+        .add_to(writer)
     }
 }
 
