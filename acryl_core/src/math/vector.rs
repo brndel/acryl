@@ -16,17 +16,21 @@ pub trait VectorComponent:
     + PartialOrd
     + PartialEq
 {
+    const ZERO: Self;
 }
 
 macro_rules! vector_component_impl {
-    ($($name:ty)*) => {
+    ($zero:expr, $($name:ty)*) => {
         $(
-            impl VectorComponent for $name {}
+            impl VectorComponent for $name {
+                const ZERO: Self = $zero;
+            }
         )*
     };
 }
 
-vector_component_impl!(u8 u16 u32 u64 i8 i16 i32 i64 usize isize f32 f64);
+vector_component_impl!(0, u8 u16 u32 u64 i8 i16 i32 i64 usize isize);
+vector_component_impl!(0.0, f32 f64);
 
 macro_rules! op_impl {
     ($name:ident, ($op:tt $trait:ident $trait_fn:ident), ($op_assign:tt $trait_assign:ident $assign_fn:ident), $($val:ident,)*) => {
@@ -67,10 +71,19 @@ pub struct $name<T: VectorComponent, C: Coords = DefaultCoords> {
 }
 
 impl<T: VectorComponent, C: Coords> $name<T, C> {
-    pub fn new($($val: T,)*) -> Self {
+    pub const ZERO: Self = Self::all(T::ZERO);
+
+    pub const fn new($($val: T,)*) -> Self {
         Self {
             $($val,)*
-            phantom: Default::default()
+            phantom: PhantomData {}
+        }
+    }
+
+    pub const fn all(value: T) -> Self {
+        Self {
+            $($val: value,)*
+            phantom: PhantomData {}
         }
     }
 
@@ -79,7 +92,7 @@ impl<T: VectorComponent, C: Coords> $name<T, C> {
             $(
                 $val: if self.$val < other.$val { self.$val } else { other.$val },
             )*
-            phantom: Default::default()
+            phantom: PhantomData {}
         }
     }
 
@@ -88,7 +101,7 @@ impl<T: VectorComponent, C: Coords> $name<T, C> {
             $(
                 $val: if self.$val > other.$val { self.$val } else { other.$val },
             )*
-            phantom: Default::default()
+            phantom: PhantomData {}
         }
 
     }
@@ -98,7 +111,7 @@ impl<T: VectorComponent, C: Coords> $name<T, C> {
             $(
                 $val: self.$val.into(),
             )*
-            phantom: Default::default()
+            phantom: PhantomData {}
         }
     }
 
@@ -107,7 +120,7 @@ impl<T: VectorComponent, C: Coords> $name<T, C> {
             $(
                 $val: self.$val * value,
             )*
-            phantom: Default::default()
+            phantom: PhantomData {}
         }
     }
 

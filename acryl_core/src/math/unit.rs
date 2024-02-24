@@ -44,7 +44,9 @@ impl From<$name> for f64 {
     }
 }
 
-impl VectorComponent for $name {}
+impl VectorComponent for $name {
+    const ZERO: Self = Self(UnitValue::ZERO);
+}
 impl Unit for $name {}
 
 // Math operations
