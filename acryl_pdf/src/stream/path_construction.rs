@@ -25,7 +25,7 @@ pub enum PathConstruction {
 impl From<PathConstruction> for StreamInstruction {
     fn from(value: PathConstruction) -> Self {
         macro_rules! into {
-            ($($name:ident)*) => {
+            ($($name:expr)*) => {
                 vec![
                     $(
                         $name.x.into(),
@@ -42,10 +42,8 @@ impl From<PathConstruction> for StreamInstruction {
             PathConstruction::CubicBezierAutoEnd { p1, p2 } => (into!(p1 p2), "y"),
             PathConstruction::Close => (vec![], "h"),
             PathConstruction::Rect(area) => {
-                let size = &area.size;
-                let pos = area.bottom_left();
                 (
-                    into!(pos size),
+                    into!(area.position area.size),
                     "re",
                 )
             }

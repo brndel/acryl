@@ -8,7 +8,7 @@ use super::{
     color::ColorOperation,
     graphics_state::GraphicsState,
     path_construction::PathConstruction,
-    path_painting::PathPainting,
+    path_painting::{FillRule, PathPainting},
     text::{TextControl, TextStreamElement},
     Stream, StreamInstruction,
 };
@@ -48,7 +48,7 @@ impl<'page> Streambuilder<'page> {
         self.push(GraphicsState::SaveState);
         self.push(PathConstruction::Rect(rect));
         self.push(ColorOperation::FillColor(color));
-        self.push(PathPainting::Fill(super::path_painting::FillRule::EvenOdd));
+        self.push(PathPainting::Fill(FillRule::EvenOdd));
         self.push(GraphicsState::RestoreState);
     }
 }
