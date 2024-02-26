@@ -21,14 +21,20 @@ pub trait Unit:
 }
 
 macro_rules! unit {
-    ($name:ident, $($factor:expr => $converted:ty),* $(,)?) => {
+    ($name:ident, $format:literal, $($factor:expr => $converted:ty),* $(,)?) => {
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Default, PartialEq, PartialOrd)]
 pub struct $name(pub UnitValue);
 
 impl std::fmt::Display for $name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for $name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, concat!("{:.1}", $format), self.0)
     }
 }
 
@@ -136,17 +142,17 @@ impl From<$name> for $converted {
     };
 }
 
-unit!(Pt,
+unit!(Pt, "pt",
     0.3527777778 => Mm,
     0.0352777778 => Cm,
 );
 
-unit!(Mm,
+unit!(Mm, "mm",
     2.8346456693 => Pt,
     0.1000000000 => Cm,
 );
 
-unit!(Cm,
+unit!(Cm, "cm",
     10.000000000 => Mm,
     28.346456693 => Pt,
 );

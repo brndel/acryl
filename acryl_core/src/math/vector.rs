@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}};
+use std::{fmt::Debug, marker::PhantomData, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign}};
 
 use super::coords::{Coords, DefaultCoords};
 
@@ -15,6 +15,7 @@ pub trait VectorComponent:
     + Copy
     + PartialOrd
     + PartialEq
+    + Debug
 {
     const ZERO: Self;
 }
@@ -62,7 +63,7 @@ impl<T: VectorComponent> $trait_assign for $name<T> {
 macro_rules! vector {
     ($name:ident, ($($val:ident),+)) => {
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct $name<T: VectorComponent, C: Coords = DefaultCoords> {
     $(
         pub $val: T,
@@ -134,6 +135,15 @@ impl<T: VectorComponent, C: Coords> $name<T, C> {
     }
 }
 
+impl<T: VectorComponent, C: Coords> Debug for $name<T, C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = format!(concat!(stringify!($name), "@{}"), C::name());
+        f.debug_tuple(&name)
+        $(.field(&self.$val))*
+        .finish()
+    }
+}
+
 op_impl!($name, (+ Add add), (+= AddAssign add_assign), $($val,)*);
 op_impl!($name, (- Sub sub), (-= SubAssign sub_assign), $($val,)*);
 op_impl!($name, (* Mul mul), (*= MulAssign mul_assign), $($val,)*);
@@ -166,3 +176,5 @@ impl<T: VectorComponent> From<T> for $name<T> {
 
 vector!(Vector2, (x, y));
 vector!(Vector3, (x, y, z));
+
+
