@@ -1,3 +1,4 @@
+workspace = { members = ["acryl_layout"] }
 [package]
 name = "acryl"
 version = "0.1.0"
@@ -9,3 +10,5 @@ edition = "2021"
 acryl_pdf = { path = "./acryl_pdf" }
 acryl_parser = { path = "./acryl_parser" }
 acryl_core = { path = "./acryl_core" }
+acryl_layout = { path = "./acryl_layout" }
+rand = "0.8.5"

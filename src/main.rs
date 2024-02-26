@@ -1,33 +1,25 @@
-mod layout;
-mod util;
 mod doc_config;
+mod util;
 
 use std::{
     fs::{self, File},
     time::Instant,
 };
 
-
-use acryl_parser::{
-    ast::ContentToken,
-    file::DocFile,
-    parse, ParsedFile,
+use acryl_core::{
+    math::Pt,
+    Color,
 };
-use acryl_pdf::{
-    font::Font, resource_manager::ResourceManager, stream::Streambuilder, structure::{Document, Page}, write::PdfDocument
-};
+use acryl_layout::{layout_pager::LayoutPager, node::Node, padding_values::PaddingValues, FONT_DEJAVU_SERIF};
+use acryl_parser::{file::DocFile, parse, ParsedFile};
+use acryl_pdf::{font::Font, resource_manager::ResourceManager, structure::Document, write::PdfDocument};
 
-use layout::{linear_layout::LinearLayout, text::TextElement};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
-
-use crate::{layout::LayoutElement, doc_config::DocumentConfig};
+use crate::doc_config::DocumentConfig;
 
 const SAMPLE_FILE_PATH: &str = "examples/minimal.acryl";
 const OUT_FILE_PATH: &str = "out/minimal.pdf";
-
-const FONT_DEJAVU_SERIF: &str = "/usr/share/fonts/TTF/DejaVuSerif.ttf";
-const FONT_NOTO_SANS: &str = "/usr/share/fonts/noto/NotoSans-Regular.ttf";
-const FONT_FREE_MONO: &str = "/usr/share/fonts/gnu-free/FreeMono.otf";
 
 fn main() {
     let start = Instant::now();
@@ -72,7 +64,11 @@ fn parse_file(source: &str) -> Option<DocFile> {
 }
 
 fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
-    let config: DocumentConfig = doc.header().try_into().map_err(|err| panic!("could not parse header '{}'", err)).unwrap();
+    let config: DocumentConfig = doc
+        .header()
+        .try_into()
+        .map_err(|err| panic!("could not parse header '{}'", err))
+        .unwrap();
 
     println!("{:?}", config);
 
@@ -80,32 +76,28 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
     let default_font =
         resource_manager.add_font(Font::load(FONT_DEJAVU_SERIF).expect("Font file not found"));
 
-        
-    let mut layout = LinearLayout::vertical();
-        
-    let mut text = TextElement::new(&default_font, 12.0);
-    
-    for token in doc.content().tokens() {
-        match token {
-            ContentToken::Word(word) => text.add_word(word),
-            ContentToken::Fn {
-                name,
-                key,
-                arguments,
-                content,
-            } => todo!(),
-        }
+
+    let mut page_layout = LayoutPager::new(config.default_page_size);
+
+    let mut rng = StdRng::from_seed([0; 32]);
+
+    for _ in 0..20 {
+        let width = rng.gen_range(50.0..150.0);
+        let height = rng.gen_range(50.0..150.0);
+        let color = rng.gen_range(0..0xFFFFFF);
+
+        let node = Node::size(width, height).with_color(Color::rgb_from_hex(color)).with_padding(PaddingValues::all(Pt(10.0))).with_color(Color::Gray(0));
+
+        page_layout.push(node);
     }
-    
-    layout.add(text);
-    
-    let mut page = Page::new(config.default_page_size.clone());
 
-    let mut builder = Streambuilder::new(&mut page);
-    layout.render(builder.get_area().clone(), &mut builder);
-    builder.render();
+    let pages = page_layout.layout();
 
-    let document = Document::new(config.info, resource_manager, vec![page]);
+    println!("created {} pages", pages.len());
+
+    let pages = pages.into_iter().map(|page| page.paint()).collect();
+
+    let document = Document::new(config.info, resource_manager, pages);
     let mut out_file = File::create(OUT_FILE_PATH).expect("could not create out file");
 
     let document = PdfDocument::new(document);
