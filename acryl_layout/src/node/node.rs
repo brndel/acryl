@@ -3,83 +3,27 @@ use acryl_core::{
     Color,
 };
 
-use crate::{dynamic_size::DySize, layout_context::LayoutContext, padding_values::PaddingValues};
+use crate::{layout_context::LayoutContext, padding_values::PaddingValues};
 
-use super::painter::NodePainter;
+use super::{color_box_node::ColorBoxNode, node_result::NodeResult, padding_node::PaddingNode, size_node::SizeNode, NodeLayout};
 
 pub enum Node {
-    Color {
-        color: Color,
-        child: Option<Box<Self>>,
-    },
-    Padding {
-        padding: PaddingValues<Pt>,
-        child: Option<Box<Self>>,
-    },
-    Size {
-        size: Vector2<Pt>,
-        child: Option<Box<Self>>,
-    },
-}
-
-pub struct NodeResult {
-    pub size: DySize<Pt>,
-    pub painter: Option<NodePainter>,
+    ColorBox(ColorBoxNode),
+    Padding(PaddingNode),
+    Size(SizeNode),
 }
 
 impl Node {
     pub fn layout(self, ctx: &LayoutContext) -> NodeResult {
         match self {
-            Node::Color { color, child } => {
-                let result = child.map(|child| child.layout(ctx));
-
-                let (size, child) = if let Some(NodeResult { size, painter }) = result {
-                    (size, painter.map(Box::new))
-                } else {
-                    (DySize::default(), None)
-                };
-
-                NodeResult {
-                    size,
-                    painter: Some(NodePainter::Color { color, child }),
-                }
+            Node::ColorBox(node) => {
+                node.layout(ctx)
             }
-            Node::Padding { padding, child } => {
-                if let Some(child) = child {
-                    let padding_vec = padding.vec();
-
-                    let ctx = LayoutContext {
-                        orientation: ctx.orientation,
-                        max_cross: ctx.max_cross - ctx.orientation.get_cross(&padding_vec),
-                    };
-
-                    let NodeResult { size, painter } = child.layout(&ctx);
-
-                    NodeResult {
-                        size: size + padding.vec(),
-                        painter: Some(NodePainter::Padding { padding, child: painter.map(Box::new) }),
-                    }
-                } else {
-                    NodeResult {
-                        size: DySize::Fixed(padding.vec()),
-                        painter: None,
-                    }
-                }
+            Node::Padding(node) => {
+                node.layout(ctx)
             }
-            Node::Size { size, child } => {
-                let ctx = LayoutContext {
-                    orientation: ctx.orientation,
-                    max_cross: ctx.orientation.get_cross(&size),
-                };
-
-                let painter = child
-                    .map(|child| child.layout(&ctx))
-                    .and_then(|result| result.painter);
-
-                NodeResult {
-                    size: DySize::Fixed(size),
-                    painter,
-                }
+            Node::Size(node) => {
+                node.layout(ctx)
             }
         }
     }
@@ -87,19 +31,19 @@ impl Node {
 
 impl Node {
     pub fn size<T: Into<Pt>>(x: T, y: T) -> Self {
-        Self::Size {
+        Self::Size(SizeNode {
             size: Vector2::new(x.into(), y.into()),
             child: None,
-        }
+        })
     }
 }
 
 impl Node {
     pub fn with_color(self, color: Color) -> Self {
-        Self::Color { color, child: Some(Box::new(self)) }
+        Self::ColorBox(ColorBoxNode { color, child: Some(Box::new(self)) })
     }
 
     pub fn with_padding(self, padding: PaddingValues<Pt>) -> Self {
-        Self::Padding { padding, child: Some(Box::new(self)) }
+        Self::Padding(PaddingNode { padding, child: Some(Box::new(self)) })
     }
 }
