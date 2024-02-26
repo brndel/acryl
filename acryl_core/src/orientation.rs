@@ -1,6 +1,6 @@
 use crate::math::{VectorComponent, Vector2};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum Orientation {
     #[default]
     Vertical,
