@@ -48,7 +48,7 @@ impl WritePdf for Page {
         pdf_dict!(
             "Type" => PdfObj::name("Page"),
             "Parent" => writer.parent(),
-            "MediaBox" => self.area.size.with_coords::<PdfCoords>(),
+            "MediaBox" => self.area.with_coords::<PdfCoords>(),
             "Contents" => content_refs,
             "Resources" => Resources::new(writer.font_container())
         )

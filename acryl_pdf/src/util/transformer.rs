@@ -16,10 +16,8 @@ impl<T: VectorComponent> CoordinateTransformer<Vector2<T, AcrylCoords>, Vector2<
 
 impl<T: VectorComponent> CoordinateTransformer<Area<T, AcrylCoords>, Area<T, PdfCoords>> for Area<T, AcrylCoords> {
     fn transform(&self, value: Area<T, AcrylCoords>) -> Area<T, PdfCoords> {
-        let mut position = self.transform(value.bottom_left());
-        position.y -= value.size.y;
         Area {
-            position,
+            position: self.transform(value.bottom_left()),
             size: value.size.with_coords::<PdfCoords>(),
         }
     }
