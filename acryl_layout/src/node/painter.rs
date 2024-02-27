@@ -1,39 +1,17 @@
-use acryl_core::{math::Pt, Color};
+use crate::painter_context::PainterContext;
 
-use crate::{padding_values::PaddingValues, painter_context::PainterContext};
-
+use super::{color_box::ColorBoxPainter, padding::PaddingPainter, NodePaint};
 
 pub enum NodePainter {
-    Color {
-        color: Color,
-        child: Option<Box<Self>>,
-    },
-    Padding {
-        padding: PaddingValues<Pt>,
-        child: Option<Box<Self>>,
-    },
+    ColorBox(ColorBoxPainter),
+    Padding(PaddingPainter),
 }
 
 impl NodePainter {
     pub fn paint(self, ctx: &mut PainterContext) {
         match self {
-            NodePainter::Color { color, child } => {
-                ctx.stream_builder.draw_rect(ctx.area.clone(), color);
-                
-                if let Some(child) = child {
-                    child.paint(ctx);
-                }
-            },
-            NodePainter::Padding { padding, child } => {
-                if let Some(child) = child {
-                    let mut ctx = PainterContext {
-                        stream_builder: ctx.stream_builder,
-                        area: padding.apply(&ctx.area),
-                    };
-
-                    child.paint(&mut ctx);
-                }
-            },
+            NodePainter::ColorBox(painter) => painter.paint(ctx),
+            NodePainter::Padding(painter) => painter.paint(ctx),
         }
     }
 }

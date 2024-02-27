@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use acryl_core::math::{Area, Pt};
-use acryl_pdf::stream::Streambuilder;
+use acryl_pdf::stream::StreamBuilder;
 
 pub struct PainterContext<'a, 'b> {
-    pub stream_builder: &'a mut Streambuilder<'b>,
+    pub stream_builder: &'a mut StreamBuilder<'b>,
     pub area: Area<Pt>,
 }
 

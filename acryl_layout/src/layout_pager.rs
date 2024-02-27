@@ -2,7 +2,7 @@ use acryl_core::{
     math::{Area, Pt, Vector2, VectorComponent},
     Orientation,
 };
-use acryl_pdf::{stream::Streambuilder, structure::Page};
+use acryl_pdf::{stream::StreamBuilder, structure::Page};
 
 use crate::{
     layout_context::LayoutContext,
@@ -101,7 +101,7 @@ impl LayoutPager {
 impl PagePainter {
     pub fn paint(self) -> Page {
         let mut page = Page::new(self.page_size);
-        let mut stream_builder = Streambuilder::new(&mut page);
+        let mut stream_builder = StreamBuilder::new(&mut page);
 
         for painter in self.content {
             painter.paint(&mut stream_builder);
@@ -114,7 +114,7 @@ impl PagePainter {
 }
 
 impl LayoutedPainter {
-    fn paint(self, stream_builder: &mut Streambuilder<'_>) {
+    fn paint(self, stream_builder: &mut StreamBuilder<'_>) {
         let mut ctx = PainterContext {
             stream_builder,
             area: self.area,

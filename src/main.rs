@@ -12,7 +12,7 @@ use acryl_core::{
 };
 use acryl_layout::{layout_pager::LayoutPager, node::Node, padding_values::PaddingValues, FONT_DEJAVU_SERIF};
 use acryl_parser::{file::DocFile, parse, ParsedFile};
-use acryl_pdf::{font::Font, resource_manager::ResourceManager, structure::Document, write::PdfDocument};
+use acryl_pdf::{font::Font, resource_manager::ResourceManager, stream::{FillPaintArgs, FillRule, LineCap, LineJoin, StrokePaintArgs}, structure::Document, write::PdfDocument};
 
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
@@ -86,7 +86,20 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
         let height = rng.gen_range(50.0..150.0);
         let color = rng.gen_range(0..0xFFFFFF);
 
-        let node = Node::size(width, height).with_color(Color::rgb_from_hex(color)).with_padding(PaddingValues::all(Pt(10.0))).with_color(Color::Gray(0));
+        let node = Node::size(width, height);
+
+        let node = node.with_color_box(Some(FillPaintArgs {
+            color: Color::rgb_from_hex(color),
+            fill_rule: FillRule::EvenOdd,
+        }), Some(StrokePaintArgs {
+            close: true,
+            color: Color::Gray(0),
+            line_width: Pt(2.0),
+            line_cap: LineCap::Sqare,
+            line_join: LineJoin::Bevel,
+            miter_limit: Pt(10.0),
+            dash_pattern: (Vec::new(), 0),
+        })).with_padding(PaddingValues::all(Pt(5.0)));
 
         page_layout.push(node);
     }
