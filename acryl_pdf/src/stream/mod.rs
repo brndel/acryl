@@ -10,7 +10,11 @@ use std::io::Write;
 
 use crate::data::PdfObj;
 
-pub use builder::Streambuilder;
+pub use builder::*;
+
+pub use path_painting::FillRule;
+pub use graphics_state::LineCap;
+pub use graphics_state::LineJoin;
 
 pub type StreamInstruction = (Vec<PdfObj>, &'static str);
 

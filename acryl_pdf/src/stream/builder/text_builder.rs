@@ -1,66 +1,24 @@
 use std::rc::Rc;
 
-use acryl_core::{math::{AcrylCoords, Area, Pt, Vector2}, Color};
+use acryl_core::math::{AcrylCoords, Pt, Vector2};
 
-use crate::{font::{Font, FontRef}, structure::Page, util::CoordinateTransformer};
+use crate::{font::{Font, FontRef}, stream::text::{TextControl, TextStreamElement}};
 
-use super::{
-    color::ColorOperation,
-    graphics_state::GraphicsState,
-    path_construction::PathConstruction,
-    path_painting::{FillRule, PathPainting},
-    text::{TextControl, TextStreamElement},
-    Stream, StreamInstruction,
-};
+use super::StreamBuilder;
 
-pub struct Streambuilder<'page> {
-    page: &'page mut Page,
-    instructions: Vec<StreamInstruction>,
-}
 
-impl<'page> Streambuilder<'page> {
-    pub fn new(page: &'page mut Page) -> Self {
-        Self {
-            page,
-            instructions: Vec::new(),
-        }
-    }
-
-    pub fn get_area(&self) -> &Area<Pt> {
-        &self.page.area()
-    }
-
-    pub fn render(self) {
-        self.page.add_stream(Stream::new(self.instructions))
-    }
-
-    fn push<T: Into<StreamInstruction>>(&mut self, instr: T) {
-        self.instructions.push(instr.into())
-    }
-
-    pub fn text<'builder>(&'builder mut self, font_ref: &FontRef, size: f64) -> TextStreambuilder<'builder, 'page> {
-        TextStreambuilder::new(self, font_ref, size)
-    }
-
-    pub fn draw_rect(&mut self, rect: Area<Pt, AcrylCoords>, color: Color) {
-        let rect = self.page.transform(rect);
-
-        self.push(GraphicsState::SaveState);
-        self.push(PathConstruction::Rect(rect));
-        self.push(ColorOperation::FillColor(color));
-        self.push(PathPainting::Fill(FillRule::EvenOdd));
-        self.push(GraphicsState::RestoreState);
-    }
-}
-
-pub struct TextStreambuilder<'builder, 'page> {
-    builder: &'builder mut Streambuilder<'page>,
+pub struct TextBuilder<'builder, 'page> {
+    builder: &'builder mut StreamBuilder<'page>,
     font: Rc<Font>,
     font_size: f64,
 }
 
-impl<'builder, 'page> TextStreambuilder<'builder, 'page> {
-    pub fn new(builder: &'builder mut Streambuilder<'page>, font_ref: &FontRef, font_size: f64) -> Self {
+impl<'builder, 'page> TextBuilder<'builder, 'page> {
+    pub fn new(
+        builder: &'builder mut StreamBuilder<'page>,
+        font_ref: &FontRef,
+        font_size: f64,
+    ) -> Self {
         builder.push(TextControl::Begin);
         builder.push(TextStreamElement::Font(
             font_ref.name().to_owned(),
@@ -76,7 +34,7 @@ impl<'builder, 'page> TextStreambuilder<'builder, 'page> {
     pub fn set_position(&mut self, mut position: Vector2<Pt, AcrylCoords>) {
         position.y += self.font.metrics().ascender(self.font_size);
 
-        let position = self.builder.page.transform(position);
+        let position = self.builder.transform(position);
 
         self.builder.push(TextStreamElement::Position(position))
     }
@@ -130,7 +88,7 @@ impl<'builder, 'page> TextStreambuilder<'builder, 'page> {
     }
 }
 
-impl Drop for TextStreambuilder<'_, '_> {
+impl Drop for TextBuilder<'_, '_> {
     fn drop(&mut self) {
         self.builder.push(TextControl::End);
     }

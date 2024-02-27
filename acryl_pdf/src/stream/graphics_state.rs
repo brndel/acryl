@@ -9,7 +9,7 @@ pub enum GraphicsState {
     LineWidth(Pt),
     LineCap(LineCap),
     LineJoin(LineJoin),
-    MiterLimit(f64),
+    MiterLimit(Pt),
     DashPattern(Vec<Pt>, u32),
     // Intent(intent)
     // Flatness(flatness)
@@ -17,14 +17,18 @@ pub enum GraphicsState {
 }
 
 #[repr(u8)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum LineCap {
+    #[default]
     Butt = 0,
     Round,
     Sqare,
 }
 
 #[repr(u8)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum LineJoin {
+    #[default]
     Miter = 0,
     Round,
     Bevel,
