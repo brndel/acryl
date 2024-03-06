@@ -2,19 +2,24 @@ use acryl_core::{
     math::{Pt, Vector2},
     Color,
 };
-use acryl_pdf::stream::{FillPaintArgs, StrokePaintArgs};
+use acryl_pdf::{
+    font::Font,
+    resource::resource_manager::ResourceRef,
+    stream::{FillPaintArgs, StrokePaintArgs},
+};
 
 use crate::{layout_context::LayoutContext, padding_values::PaddingValues};
 
 use super::{
-    color_box::ColorBoxNode, node_result::NodeResult, padding::PaddingNode,
-    size_node::SizeNode, NodeLayout,
+    color_box::ColorBoxNode, node_result::NodeResult, padding::PaddingNode, size_node::SizeNode,
+    text_node::TextNode, NodeLayout,
 };
 
 pub enum Node {
     ColorBox(ColorBoxNode),
     Padding(PaddingNode),
     Size(SizeNode),
+    Text(TextNode),
 }
 
 impl Node {
@@ -23,11 +28,20 @@ impl Node {
             Node::ColorBox(node) => node.layout(ctx),
             Node::Padding(node) => node.layout(ctx),
             Node::Size(node) => node.layout(ctx),
+            Node::Text(node) => node.layout(ctx),
         }
     }
 }
 
 impl Node {
+    pub fn text<T: ToString>(text: T, font_size: f64, font: ResourceRef<Font>) -> Self {
+        Self::Text(TextNode {
+            text: text.to_string(),
+            font_size,
+            font,
+        })
+    }
+
     pub fn size<T: Into<Pt>>(x: T, y: T) -> Self {
         Self::Size(SizeNode {
             size: Vector2::new(x.into(), y.into()),
@@ -37,6 +51,13 @@ impl Node {
 }
 
 impl Node {
+    pub fn with_size(self, size: Vector2<Pt>) -> Self {
+        Self::Size(SizeNode {
+            size,
+            child: Some(Box::new(self)),
+        })
+    }
+
     pub fn with_color(self, color: Color) -> Self {
         Self::ColorBox(ColorBoxNode::color::<Node>(color, Some(self)))
     }

@@ -1,70 +1,79 @@
-use std::collections::BTreeMap;
+use std::{cmp::max, collections::BTreeMap};
 
 use acryl_core::math::Vector2;
+use owned_ttf_parser::{Face, GlyphId};
 
 use crate::data::PdfObj;
 
-use super::{glyph_info::GlyphInfo, Font};
-
 pub struct CMap {
     // id -> (codepoint, width, height)
-    map: BTreeMap<u16, (char, u16, u16)>,
+    map: BTreeMap<GlyphId, GlyphData>,
     max_height: u16,
     total_width: u32,
     font_units_per_em: u16,
 }
 
-impl From<&Font> for CMap {
-    fn from(value: &Font) -> Self {
-        let mut map: BTreeMap<u16, (char, u16, u16)> = BTreeMap::new();
+struct GlyphData {
+    codepoint: u32,
+    size: Vector2<i16>,
+}
+
+impl<'a> TryFrom<&Face<'a>> for CMap {
+    type Error = ();
+
+    fn try_from(value: &Face<'a>) -> Result<Self, Self::Error> {
+        let face = value;
+        let table = face.tables().cmap.ok_or(())?;
+
+        let mut map: BTreeMap<GlyphId, GlyphData> = BTreeMap::new();
 
         let mut max_height: u16 = 0;
         let mut total_width: u32 = 0;
 
-        for (_, info) in &*value.glyph_ids() {
-            if let Some(GlyphInfo {
-                id,
-                ch,
-                advance: Vector2 { x: width, .. },
-                size: Vector2 { y: height, .. },
-                ..
-            }) = info
-            {
-                if *height > max_height {
-                    max_height = *height;
+        for subtable in table.subtables {
+            subtable.codepoints(|codepoint| {
+                if let Some(glyph_id) = subtable.glyph_index(codepoint) {
+                    map.entry(glyph_id).or_insert_with(|| {
+                        let size = face
+                            .glyph_bounding_box(glyph_id)
+                            .map_or(Vector2::default(), |rect| {
+                                Vector2::new(rect.width(), rect.height())
+                            });
+
+                        max_height = max(max_height, size.y as u16);
+                        total_width += size.x as u32;
+
+                        GlyphData { codepoint, size }
+                    });
                 }
-
-                total_width += *width as u32;
-
-                map.insert(*id, (*ch, *width, *height));
-            }
+            });
         }
 
-        CMap {
+        Ok(CMap {
             map,
             max_height,
             total_width,
-            font_units_per_em: value.face().units_per_em(),
-        }
+            font_units_per_em: face.units_per_em(),
+        })
     }
 }
 
 impl CMap {
-    fn create_blocks(&self) -> Vec<Vec<(u16, char)>> {
+    fn create_blocks(&self) -> Vec<Vec<(u16, u32)>> {
         let mut current_first_byte: u8 = 0;
 
         let mut all_cmap_blocks = Vec::new();
 
         let mut current_cmap_block = Vec::new();
 
-        for (glyph_id, (unicode, _, _)) in &self.map {
-            if (*glyph_id >> 8) as u8 != current_first_byte || current_cmap_block.len() >= 100 {
+        for (GlyphId(gid), GlyphData { codepoint, .. }) in &self.map {
+            if (*gid >> 8) as u8 != current_first_byte || current_cmap_block.len() >= 100 {
                 all_cmap_blocks.push(current_cmap_block);
                 current_cmap_block = Vec::new();
-                current_first_byte = (*glyph_id >> 8) as u8;
+                current_first_byte = (*gid >> 8) as u8;
             }
 
-            current_cmap_block.push((*glyph_id, *unicode));
+            current_cmap_block.push((*gid, *codepoint));
         }
 
         all_cmap_blocks.push(current_cmap_block);
@@ -112,16 +121,16 @@ impl CMap {
 
         let font_scaling = 1000.0 / (self.font_units_per_em as f64);
 
-        for (gid, (_, width, _)) in &self.map {
-            let width = (*width as f64 * font_scaling) as i16;
+        for (gid, GlyphData { size, .. }) in &self.map {
+            let width = (size.x as f64 * font_scaling) as i16;
             if let Some(block) = blocks.last_mut() {
-                if *gid == block.next() {
+                if gid.0 == block.next() {
                     block.widths.push(width);
                     continue;
                 }
             }
             blocks.push(WidthBlock {
-                start_gid: *gid,
+                start_gid: gid.0,
                 widths: vec![width],
             });
         }

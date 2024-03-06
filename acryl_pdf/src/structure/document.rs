@@ -1,5 +1,5 @@
 
-use crate::resource_manager::ResourceManager;
+use crate::resource::resource_manager::ResourceManager;
 
 use super::{DocumentCatalog, DocumentInfo, Page};
 

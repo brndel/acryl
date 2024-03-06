@@ -4,6 +4,7 @@ mod color_box;
 mod node_result;
 mod padding;
 mod size_node;
+mod text_node;
 
 pub use node::Node;
 pub use painter::NodePainter;

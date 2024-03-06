@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use acryl_core::math::{AcrylCoords, Pt, Vector2};
 
-use crate::{font::{Font, FontRef}, stream::text::{TextControl, TextStreamElement}};
+use crate::{font::{Font, WordLayout}, resource::resource_manager::ResourceRef, stream::text::{TextControl, TextStreamElement}};
 
 use super::StreamBuilder;
 
@@ -16,7 +16,7 @@ pub struct TextBuilder<'builder, 'page> {
 impl<'builder, 'page> TextBuilder<'builder, 'page> {
     pub fn new(
         builder: &'builder mut StreamBuilder<'page>,
-        font_ref: &FontRef,
+        font_ref: &ResourceRef<Font>,
         font_size: f64,
     ) -> Self {
         builder.push(TextControl::Begin);
@@ -26,13 +26,13 @@ impl<'builder, 'page> TextBuilder<'builder, 'page> {
         ));
         Self {
             builder,
-            font: font_ref.1.clone(),
+            font: font_ref.data_rc(),
             font_size,
         }
     }
 
     pub fn set_position(&mut self, mut position: Vector2<Pt, AcrylCoords>) {
-        position.y += self.font.metrics().ascender(self.font_size);
+        position.y += self.font.ascender(self.font_size);
 
         let position = self.builder.transform(position);
 
@@ -71,17 +71,13 @@ impl<'builder, 'page> TextBuilder<'builder, 'page> {
         self.builder.push(TextStreamElement::NextLine)
     }
 
-    pub fn draw_text<T: Into<String>>(&mut self, text: T) {
+    pub fn draw_word(&mut self, word: WordLayout) {
         let mut bytes = Vec::new();
 
-        for c in text.into().chars() {
-            if let Some(gid) = self.font.as_ref().get_char_id(c) {
-                let gid_bytes = gid.to_be_bytes();
-
-                bytes.append(&mut gid_bytes.to_vec());
-            } else {
-                dbg!("Invalid char '{c}'");
-            }
+        for glyph in word.glyphs() {
+            let gid_bytes = glyph.glyph_id().0.to_be_bytes();
+            
+            bytes.append(&mut gid_bytes.to_vec());
         }
 
         self.builder.push(TextStreamElement::Text(bytes))

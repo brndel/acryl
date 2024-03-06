@@ -1,4 +1,4 @@
-workspace = { members = ["acryl_layout"] }
+# workspace = { members = [ "acryl_pdf","acryl_layout","acryl_core","acryl_parser"] }
 [package]
 name = "acryl"
 version = "0.1.0"

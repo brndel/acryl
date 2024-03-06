@@ -1,12 +1,9 @@
 use acryl_core::math::{Area, Pt};
 
 use crate::{
-    font::FontRef,
-    stream::{
+    font::Font, resource::resource_manager::ResourceRef, stream::{
         Stream, StreamInstruction,
-    },
-    structure::Page,
-    util::CoordinateTransformer,
+    }, structure::Page, util::CoordinateTransformer
 };
 
 use super::{path_builder::PathBuilder, text_builder::TextBuilder};
@@ -36,9 +33,9 @@ impl<'page> StreamBuilder<'page> {
         self.instructions.push(instr.into())
     }
 
-    pub fn text<'builder>(
+    pub fn text<'builder, 'font>(
         &'builder mut self,
-        font_ref: &FontRef,
+        font_ref: &ResourceRef<Font>,
         size: f64,
     ) -> TextBuilder<'builder, 'page> {
         TextBuilder::new(self, font_ref, size)
