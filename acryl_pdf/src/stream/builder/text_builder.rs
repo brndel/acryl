@@ -2,10 +2,13 @@ use std::rc::Rc;
 
 use acryl_core::math::{AcrylCoords, Pt, Vector2};
 
-use crate::{font::{Font, WordLayout}, resource::resource_manager::ResourceRef, stream::text::{TextControl, TextStreamElement}};
+use crate::{
+    font::{Font, WordLayout},
+    resource::resource_manager::ResourceRef,
+    stream::text::{TextControl, TextStreamElement},
+};
 
 use super::StreamBuilder;
-
 
 pub struct TextBuilder<'builder, 'page> {
     builder: &'builder mut StreamBuilder<'page>,
@@ -71,12 +74,12 @@ impl<'builder, 'page> TextBuilder<'builder, 'page> {
         self.builder.push(TextStreamElement::NextLine)
     }
 
-    pub fn draw_word(&mut self, word: WordLayout) {
+    pub fn draw_word(&mut self, word: &WordLayout) {
         let mut bytes = Vec::new();
 
         for glyph in word.glyphs() {
             let gid_bytes = glyph.glyph_id().0.to_be_bytes();
-            
+
             bytes.append(&mut gid_bytes.to_vec());
         }
 

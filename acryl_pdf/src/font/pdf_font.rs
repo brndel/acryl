@@ -15,17 +15,17 @@ pub struct PdfFont<'a> {
     cmap: CMap,
 }
 
-impl<'a> From<&'a Face<'a>> for PdfFont<'a> {
-    fn from(value: &'a Face<'a>) -> Self {
-        let data = value.raw_face().data;
-        let name = face_name(value);
+impl<'a> PdfFont<'a> {
+    pub fn new<'b>(face: &'a Face, used_chars: impl Iterator<Item = &'b char>) -> Self {
+        let data = face.raw_face().data;
+        let name = face_name(face);
 
-        let ascender = value.ascender();
-        let descender = value.descender();
-        let line_gap = value.line_gap();
-        let capital_height = value.capital_height().unwrap_or_default();
+        let ascender = face.ascender();
+        let descender = face.descender();
+        let line_gap = face.line_gap();
+        let capital_height = face.capital_height().unwrap_or_default();
 
-        let cmap = CMap::try_from(value).expect("hey sorry your font file does not have a cmap defined");
+        let cmap = CMap::new(face, used_chars);
 
         Self {
             data,

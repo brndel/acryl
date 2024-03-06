@@ -12,3 +12,4 @@ acryl_parser = { path = "./acryl_parser" }
 acryl_core = { path = "./acryl_core" }
 acryl_layout = { path = "./acryl_layout" }
 rand = "0.8.5"
+font-loader = "0.11.0"

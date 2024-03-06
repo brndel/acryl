@@ -1,60 +1,45 @@
-use std::{cmp::max, collections::BTreeMap};
+use std::collections::BTreeMap;
 
-use acryl_core::math::Vector2;
-use owned_ttf_parser::{Face, GlyphId};
+use owned_ttf_parser::{Face, GlyphId, Rect};
 
 use crate::data::PdfObj;
 
 pub struct CMap {
     // id -> (codepoint, width, height)
     map: BTreeMap<GlyphId, GlyphData>,
-    max_height: u16,
-    total_width: u32,
+    bounding_box: Rect,
     font_units_per_em: u16,
 }
 
 struct GlyphData {
-    codepoint: u32,
-    size: Vector2<i16>,
+    code_point: u32,
+    width: u16,
 }
 
-impl<'a> TryFrom<&Face<'a>> for CMap {
-    type Error = ();
-
-    fn try_from(value: &Face<'a>) -> Result<Self, Self::Error> {
-        let face = value;
-        let table = face.tables().cmap.ok_or(())?;
-
+impl CMap {
+    pub fn new<'a, 'b>(face: &'a Face, used_chars: impl Iterator<Item = &'b char>) -> Self {
         let mut map: BTreeMap<GlyphId, GlyphData> = BTreeMap::new();
 
-        let mut max_height: u16 = 0;
-        let mut total_width: u32 = 0;
+        for code_point in used_chars {
+            if let Some(glyph_id) = face.glyph_index(*code_point) {
+                map.entry(glyph_id).or_insert_with(|| {
+                    let width = face.glyph_hor_advance(glyph_id).unwrap_or_default();
 
-        for subtable in table.subtables {
-            subtable.codepoints(|codepoint| {
-                if let Some(glyph_id) = subtable.glyph_index(codepoint) {
-                    map.entry(glyph_id).or_insert_with(|| {
-                        let size = face
-                            .glyph_bounding_box(glyph_id)
-                            .map_or(Vector2::default(), |rect| {
-                                Vector2::new(rect.width(), rect.height())
-                            });
-
-                        max_height = max(max_height, size.y as u16);
-                        total_width += size.x as u32;
-
-                        GlyphData { codepoint, size }
-                    });
-                }
-            });
+                    GlyphData {
+                        code_point: *code_point as u32,
+                        width,
+                    }
+                });
+            }
         }
 
-        Ok(CMap {
+
+        CMap {
             map,
-            max_height,
-            total_width,
+            bounding_box: 
+            face.global_bounding_box(),
             font_units_per_em: face.units_per_em(),
-        })
+        }
     }
 }
 
@@ -66,14 +51,14 @@ impl CMap {
 
         let mut current_cmap_block = Vec::new();
 
-        for (GlyphId(gid), GlyphData { codepoint, .. }) in &self.map {
+        for (GlyphId(gid), GlyphData { code_point, .. }) in &self.map {
             if (*gid >> 8) as u8 != current_first_byte || current_cmap_block.len() >= 100 {
                 all_cmap_blocks.push(current_cmap_block);
                 current_cmap_block = Vec::new();
                 current_first_byte = (*gid >> 8) as u8;
             }
 
-            current_cmap_block.push((*gid, *codepoint));
+            current_cmap_block.push((*gid, *code_point));
         }
 
         all_cmap_blocks.push(current_cmap_block);
@@ -108,10 +93,10 @@ impl CMap {
 
     pub fn create_bbox(&self) -> PdfObj {
         vec![
-            0,
-            self.max_height as u32,
-            self.total_width as u32,
-            self.max_height as u32,
+            self.bounding_box.x_min as u32,
+            self.bounding_box.y_min as u32,
+            self.bounding_box.x_max as u32,
+            self.bounding_box.y_max as u32,
         ]
         .into()
     }
@@ -119,10 +104,10 @@ impl CMap {
     pub fn create_width_vector(&self) -> PdfObj {
         let mut blocks: Vec<WidthBlock> = Vec::new();
 
-        let font_scaling = 1000.0 / (self.font_units_per_em as f64);
+        let font_scaling = 1000 / self.font_units_per_em;
 
-        for (gid, GlyphData { size, .. }) in &self.map {
-            let width = (size.x as f64 * font_scaling) as i16;
+        for (gid, GlyphData { width, .. }) in &self.map {
+            let width = width * font_scaling;
             if let Some(block) = blocks.last_mut() {
                 if gid.0 == block.next() {
                     block.widths.push(width);
@@ -141,7 +126,7 @@ impl CMap {
 
 struct WidthBlock {
     start_gid: u16,
-    widths: Vec<i16>,
+    widths: Vec<u16>,
 }
 
 impl Into<PdfObj> for Vec<WidthBlock> {
