@@ -35,10 +35,10 @@ impl<'page> StreamBuilder<'page> {
 
     pub fn text<'builder, 'font>(
         &'builder mut self,
-        font_ref: &ResourceRef<Font>,
-        size: f64,
+        font: ResourceRef<Font>,
+        size: Pt,
     ) -> TextBuilder<'builder, 'page> {
-        TextBuilder::new(self, font_ref, size)
+        TextBuilder::new(self, font, size)
     }
 
     pub fn path<'builder>(

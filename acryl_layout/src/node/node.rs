@@ -34,7 +34,7 @@ impl Node {
 }
 
 impl Node {
-    pub fn text<T: ToString>(text: T, font_size: f64, font: ResourceRef<Font>) -> Self {
+    pub fn text<T: ToString>(text: T, font_size: Pt, font: ResourceRef<Font>) -> Self {
         Self::Text(TextNode {
             text: text.to_string(),
             font_size,

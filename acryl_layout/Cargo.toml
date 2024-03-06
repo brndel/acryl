@@ -8,4 +8,3 @@ edition = "2021"
 [dependencies]
 acryl_core = { path = "../acryl_core" }
 acryl_pdf = { path = "../acryl_pdf" }
-rustybuzz = "0.13.0"

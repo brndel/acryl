@@ -10,7 +10,7 @@ use super::{node_result::NodeResult, Node, NodeLayout, NodePaint, NodePainter};
 
 pub struct TextNode {
     pub text: String,
-    pub font_size: f64,
+    pub font_size: Pt,
     pub font: ResourceRef<Font>,
 }
 
@@ -48,7 +48,7 @@ impl NodeLayout for TextNode {
 
 pub struct TextPainter {
     words: Vec<WordLayout>,
-    font_size: f64,
+    font_size: Pt,
     font: ResourceRef<Font>,
 }
 
@@ -62,7 +62,7 @@ impl NodePaint for TextPainter {
     fn paint(self, ctx: &mut PainterContext) {
         let space = self.font.data().layout(" ");
 
-        let mut text_builder = ctx.stream_builder.text(&self.font, self.font_size);
+        let mut text_builder = ctx.stream_builder.text(self.font, self.font_size);
 
         text_builder.set_position(ctx.area.position.clone());
 

@@ -10,11 +10,11 @@ use acryl_core::{
     math::{Pt, Vector2},
     Color,
 };
-use acryl_layout::{layout_pager::LayoutPager, node::Node, padding_values::PaddingValues, FONT_DEJAVU_SERIF, FONT_FREE_MONO, FONT_NOTO_SANS};
+use acryl_layout::{layout_pager::LayoutPager, node::Node, padding_values::PaddingValues};
 use acryl_parser::{file::DocFile, parse, ParsedFile};
-use acryl_pdf::{font::Font, resource::resource_manager::ResourceManager, stream::{FillPaintArgs, FillRule, LineCap, LineJoin, StrokePaintArgs}, structure::Document, write::PdfDocument};
+use acryl_pdf::{font::Font, resource::resource_manager::{ResourceManager, ResourceRef}, stream::{FillPaintArgs, FillRule, LineCap, LineJoin, StrokePaintArgs}, structure::Document, write::PdfDocument};
 
-use font_loader::system_fonts::{get, query_all, FontProperty, FontPropertyBuilder};
+use font_loader::system_fonts::{get, FontPropertyBuilder};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 use crate::doc_config::DocumentConfig;
@@ -74,12 +74,16 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
     println!("{:?}", config);
 
     let mut resource_manager = ResourceManager::new();
+    
+    let font_awesome = query_font("Font Awesome 6 Free Solid", None).unwrap();
+    let font_awesome = resource_manager.add_font(font_awesome);
 
-    // let font_noto = query_font("Noto Sans").unwrap();
-    let font_emoji = query_font("Noto Color Emoji").unwrap();
+    let noto_font = query_font("Noto Sans", Some(font_awesome)).unwrap();
+    let noto_font =
+        resource_manager.add_font(noto_font);
 
-    let default_font =
-        resource_manager.add_font(font_emoji);
+
+    let default_font = noto_font;
 
 
     let mut page_layout = LayoutPager::new(config.default_page_size);
@@ -87,7 +91,7 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
     // {
     //     let text_node = Node::text("Lorem😀 ipsum dolor sit amet und sowas", 12.0, default_font.clone());
         
-    //     page_layout.push(text_node)
+    //     page_layout.push(text_node)♥️
     // }
 
     let mut rng = StdRng::from_seed([0; 32]);
@@ -97,7 +101,7 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
         let height = rng.gen_range(50.0..150.0);
         let color = rng.gen_range(0..0xFFFFFF);
 
-        let text_node = Node::text("Hey😀", 12.0, default_font.clone()).with_padding(PaddingValues::all(Pt(4.0)));
+        let text_node = Node::text("Hey you \u{f2b4} \u{f015} \u{f007}", Pt(12.0), default_font.clone()).with_padding(PaddingValues::all(Pt(4.0)));
 
         let node = text_node.with_size(Vector2::new(width.into(), height.into()));
 
@@ -135,11 +139,11 @@ fn build_pdf_from_doc(doc: DocFile) -> Option<File> {
     Some(out_file)
 }
 
-fn query_font<T: ToString>(name: T) -> Option<Font> {
+fn query_font<T: ToString>(name: T, fallback: Option<ResourceRef<Font>>) -> Option<Font> {
     let name = name.to_string();
     let prop = FontPropertyBuilder::new().family(&name).build();
 
     let (data, index) = get(&prop)?;
 
-    Font::from_data(name, data, index as u32).ok()
+    Font::from_data(name, data, index as u32, fallback).ok()
 }

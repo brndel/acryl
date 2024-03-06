@@ -12,30 +12,30 @@ use super::StreamBuilder;
 
 pub struct TextBuilder<'builder, 'page> {
     builder: &'builder mut StreamBuilder<'page>,
-    font: Rc<Font>,
-    font_size: f64,
+    font: ResourceRef<Font>,
+    font_size: Pt,
 }
 
 impl<'builder, 'page> TextBuilder<'builder, 'page> {
     pub fn new(
         builder: &'builder mut StreamBuilder<'page>,
-        font_ref: &ResourceRef<Font>,
-        font_size: f64,
+        font: ResourceRef<Font>,
+        font_size: Pt,
     ) -> Self {
         builder.push(TextControl::Begin);
         builder.push(TextStreamElement::Font(
-            font_ref.name().to_owned(),
-            Pt(font_size),
+            font.name().to_owned(),
+            font_size,
         ));
         Self {
             builder,
-            font: font_ref.data_rc(),
+            font: font.clone(),
             font_size,
         }
     }
 
     pub fn set_position(&mut self, mut position: Vector2<Pt, AcrylCoords>) {
-        position.y += self.font.ascender(self.font_size);
+        position.y += self.font.data().ascender(self.font_size);
 
         let position = self.builder.transform(position);
 
@@ -79,8 +79,21 @@ impl<'builder, 'page> TextBuilder<'builder, 'page> {
 
         for glyph in word.glyphs() {
             let gid_bytes = glyph.glyph_id().0.to_be_bytes();
+            
+            if let Some(font_name) = glyph.font_name() {
+                self.builder.push(TextStreamElement::Text(bytes));
 
-            bytes.append(&mut gid_bytes.to_vec());
+                self.builder.push(TextStreamElement::Font(font_name.clone(), self.font_size));
+
+                self.builder.push(TextStreamElement::Text(gid_bytes.to_vec()));
+
+                self.builder.push(TextStreamElement::Font(self.font.name().to_owned(), self.font_size));
+
+                bytes = Vec::new();
+            } else {
+
+                bytes.append(&mut gid_bytes.to_vec());
+            }
         }
 
         self.builder.push(TextStreamElement::Text(bytes))

@@ -7,6 +7,8 @@ use acryl_core::math::Pt;
 use owned_ttf_parser::name_id::POST_SCRIPT_NAME;
 use owned_ttf_parser::{AsFaceRef, FaceParsingError, GlyphId, OwnedFace};
 
+use crate::resource::resource_manager::ResourceRef;
+
 use super::pdf_font::PdfFont;
 
 /// �
@@ -22,6 +24,7 @@ pub struct Font {
     name: String,
     face: OwnedFace,
     used_chars: RefCell<BTreeSet<char>>,
+    fallback: Option<ResourceRef<Font>>,
 }
 
 impl Debug for Font {
@@ -37,16 +40,17 @@ impl Font {
         let path = path.as_ref();
         let data = fs::read(&path).map_err(|e| FontLoadError::File(e))?;
 
-        Self::from_data(path.display().to_string(), data, 0)
+        Self::from_data(path.display().to_string(), data, 0, None)
     }
 
-    pub fn from_data(name: String, data: Vec<u8>, index: u32) -> Result<Self, FontLoadError> {
+    pub fn from_data(name: String, data: Vec<u8>, index: u32, fallback: Option<ResourceRef<Font>>) -> Result<Self, FontLoadError> {
         let face = OwnedFace::from_vec(data, index).map_err(FontLoadError::Parse)?;
 
         Ok(Self {
             name,
             face,
             used_chars: Default::default(),
+            fallback,
         })
     }
 
@@ -67,7 +71,7 @@ impl Font {
     }
 
     #[inline]
-    pub fn ascender(&self, font_size: f64) -> Pt {
+    pub fn ascender(&self, font_size: Pt) -> Pt {
         let face = self.face.as_face_ref();
         Self::unit_to_pt(face.ascender(), face.units_per_em()) * font_size
     }
@@ -81,7 +85,22 @@ impl Font {
         self.used_chars.borrow_mut().insert(code_point);
 
         let face = self.face.as_face_ref();
-        let glyph_id = face.glyph_index(code_point)?;
+        let glyph_id = match face.glyph_index(code_point) {
+            Some(glyph_id) => glyph_id,
+            None => {
+                println!("did not find '{}'", code_point);
+
+                let fallback = self.fallback.as_ref()?;
+                let mut layout = fallback.data().get_glyph_layout(code_point)?;
+
+                
+                layout.font_name = layout.font_name.or_else(|| Some(fallback.name().to_string()));
+                
+                println!("found it in font '{:?}' as {:x}", layout.font_name, layout.glyph_id.0);
+
+                return Some(layout);
+            }
+        };
 
         let width = face.glyph_hor_advance(glyph_id)?;
 
@@ -89,6 +108,7 @@ impl Font {
             code_point,
             glyph_id,
             width,
+            font_name: None
         })
     }
 
@@ -103,7 +123,7 @@ impl Font {
             let layout = match self.get_glyph_layout(code_point) {
                 Some(layout) => layout,
                 None => {
-                    println!("font {:?} does not provide '{}' glyph", self.name, code_point);
+                    println!("font {:?} does not provide '{}' glyph", self.name_with_fallbacks(), code_point);
 
                     match self.get_glyph_layout(INVALID_CHAR_FALLBACK) {
                         Some(layout) => layout,
@@ -116,6 +136,7 @@ impl Font {
             let layout = GlyphLayout {
                 code_point: layout.code_point,
                 glyph_id: layout.glyph_id,
+                font_name: layout.font_name,
                 width: Self::unit_to_pt(layout.width, units_per_em),
             };
 
@@ -125,6 +146,15 @@ impl Font {
         let width = Self::unit_to_pt(width, units_per_em);
 
         WordLayout { glyphs, width }
+    }
+
+    fn name_with_fallbacks(&self) -> String {
+        let mut name = self.name.clone();
+        if let Some(fallback) = self.fallback.as_ref() {
+            name += &format!(" -> {}", fallback.data().name_with_fallbacks());
+        }
+
+        name
     }
 
     pub(crate) fn pdf_font<'a>(&'a self) -> PdfFont<'a> {
@@ -141,6 +171,7 @@ pub struct WordLayout {
 pub struct GlyphLayout<W = Pt> {
     code_point: char,
     glyph_id: GlyphId,
+    font_name: Option<String>,
     width: W,
 }
 
@@ -161,5 +192,9 @@ impl GlyphLayout<Pt> {
 
     pub fn glyph_id(&self) -> GlyphId {
         self.glyph_id
+    }
+
+    pub fn font_name(&self) -> Option<&String> {
+        self.font_name.as_ref()
     }
 }
